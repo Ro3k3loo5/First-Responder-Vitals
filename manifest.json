@@ -1,11 +1,12 @@
 {
   "name": "Start Vitals",
-  "short_name": "Start Vitals",
-  "description": "Offline vitals log for first responders",
-  "start_url": "index.html",
+  "short_name": "Vitals",
+  "description": "An offline-ready patient vitals app for quick handover reports.",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#f4f7f9",
   "theme_color": "#3498db",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
