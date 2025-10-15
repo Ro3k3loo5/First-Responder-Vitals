@@ -1,413 +1,774 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Start Vitals</title>
 <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3498db">
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js');
+      navigator.serviceWorker.register('sw.js').catch(()=>{/*sw failed*/});
     });
   }
 </script>
-<meta name="theme-color" content="#3498db">
 <style>
-:root {
-    --primary-bg: #f4f7f9;
-    --secondary-bg: rgba(255,255,255,0.9);
-    --border-color: #dbe2e8;
-    --text-color: #2c3e50;
-    --primary-accent: #3498db;
-    --secondary-accent: #2ecc71;
-    --danger-accent: #e74c3c;
-    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+:root{
+  --primary-bg:#f4f7f9;
+  --secondary-bg:rgba(255,255,255,0.9);
+  --border-color:#dbe2e8;
+  --text-color:#2c3e50;
+  --primary-accent:#3498db;
+  --secondary-accent:#2ecc71;
+  --warn-amber:#f39c12;
+  --warn-red:#e74c3c;
+  --font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
-body {
-    font-family: var(--font-family);
-    background-color: var(--primary-bg);
-    background-image: url('icon-512.png');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 150px 150px;
-    color: var(--text-color);
-    margin: 0;
-    padding: 10px;
-    font-size: 16px;
+*{box-sizing:border-box}
+body{
+  font-family:var(--font-family);
+  background-color:var(--primary-bg);
+  background-image:url('icon-512.png');
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:150px 150px;
+  color:var(--text-color);
+  margin:0;
+  padding:10px;
+  font-size:16px;
 }
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    background-color: var(--secondary-bg);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    overflow: hidden;
+.container{
+  max-width:900px;
+  margin:0 auto;
+  background-color:var(--secondary-bg);
+  border-radius:8px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  overflow:hidden;
+  padding:0;
 }
-.tab-nav {
-    display: flex;
-    background-color: #ecf0f1;
-    border-bottom: 1px solid var(--border-color);
-    overflow-x: auto;
+.header {
+  padding:12px 18px;
+  border-bottom:1px solid var(--border-color);
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
-.tab-button {
-    padding: 15px 20px;
-    border: none;
-    background-color: transparent;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: 500;
-    color: var(--text-color);
-    transition: background-color 0.3s, color 0.3s;
-    white-space: nowrap;
+.app-title { font-weight:700; font-size:1.1rem; color:var(--primary-accent); }
+.controls { margin-left:auto; font-size:0.9rem; color:#666; padding-right:10px; }
+.tab-nav{ display:flex; background:#ecf0f1; border-bottom:1px solid var(--border-color); overflow-x:auto;}
+.tab-button{
+  padding:12px 16px; border:none; background:transparent; cursor:pointer;
+  font-size:1rem; font-weight:600; color:var(--text-color); white-space:nowrap;
 }
-.tab-button.active {
-    background-color: var(--primary-accent);
-    color: white;
-    border-bottom: 3px solid var(--secondary-accent);
+.tab-button.active{ background:var(--primary-accent); color:#fff; border-bottom:3px solid var(--secondary-accent); }
+.tab-content{ display:none; padding:18px; animation:fadeIn .25s ease; }
+@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+.form-group{ margin-bottom:16px; }
+.form-group label{ display:block; font-weight:600; margin-bottom:8px; }
+.form-group input, .form-group textarea, .form-group select{
+  width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; font-size:1rem;
 }
-.tab-content {
-    display: none;
-    padding: 20px;
-    animation: fadeIn 0.5s;
+.input-group{ display:flex; gap:10px; align-items:center; }
+.input-group input{ flex:1; }
+.input-group-addon{ background:#ecf0f1; padding:10px; border:1px solid var(--border-color); border-radius:4px; }
+.gcs-section{ margin-bottom:18px; border:1px solid var(--border-color); border-radius:6px; padding:12px; }
+.gcs-option{ display:block; margin-bottom:8px; }
+#gcs-total{ font-size:1.2rem; font-weight:700; text-align:center; padding:10px; background:var(--primary-accent); color:#fff; border-radius:6px; margin-top:10px; }
+.btn{ padding:10px 14px; border:none; border-radius:6px; cursor:pointer; font-weight:700; }
+.btn-primary{ background:var(--secondary-accent); color:#fff; }
+.btn-secondary{ background:#bdc3c7; color:var(--text-color); }
+.small{ font-size:0.9rem; color:#555; }
+#results-output{ white-space:pre-wrap; background:#ecf0f1; border:1px solid var(--border-color); padding:12px; border-radius:6px; min-height:180px; font-family:"Courier New", monospace; }
+.kv { display:flex; gap:10px; align-items:center; margin-bottom:8px; }
+.kv label{ min-width:110px; font-weight:700; color:#333; }
+.alert-banner{
+  padding:10px 12px; border-radius:6px; color:#fff; margin-bottom:12px; font-weight:700;
+  display:flex; align-items:center; gap:10px;
 }
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-.tab-content.active {
-    display: block;
-}
-.form-group {
-    margin-bottom: 20px;
-}
-.form-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-.form-group input, .form-group textarea, .form-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-sizing: border-box;
-    font-size: 1em;
-}
-.form-group textarea {
-    min-height: 100px;
-    resize: vertical;
-}
-.input-group {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-.input-group input {
-    flex: 1;
-}
-.input-group-addon {
-    background-color: #ecf0f1;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-}
-.gcs-section {
-    margin-bottom: 20px;
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    padding: 15px;
-}
-.gcs-section h3 {
-    margin-top: 0;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-    font-size: 1.1em;
-}
-.gcs-option {
-    display: block;
-    margin-bottom: 10px;
-}
-#gcs-total {
-    font-size: 1.5em;
-    font-weight: bold;
-    text-align: center;
-    padding: 15px;
-    background-color: var(--primary-accent);
-    color: white;
-    border-radius: 5px;
-    margin-top: 20px;
-}
-.btn {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: bold;
-    transition: background-color 0.3s;
-}
-.btn-primary {
-    background-color: var(--secondary-accent);
-    color: white;
-}
-.btn-primary:hover {
-    background-color: #27ae60;
-}
-.btn-secondary {
-    background-color: #bdc3c7;
-    color: var(--text-color);
-}
-.btn-secondary:hover {
-    background-color: #95a5a6;
-}
-#results-output {
-    white-space: pre-wrap;
-    background-color: #ecf0f1;
-    border: 1px solid var(--border-color);
-    padding: 15px;
-    border-radius: 5px;
-    min-height: 200px;
-    font-family: "Courier New", Courier, monospace;
+.alert-none{ display:none; }
+.alert-amber{ background:var(--warn-amber); }
+.alert-red{ background:var(--warn-red); }
+.log-list{ border:1px dashed var(--border-color); padding:8px; border-radius:6px; max-height:200px; overflow:auto; background:#fff; }
+.log-item{ padding:6px 8px; border-bottom:1px solid #f1f1f1; font-size:0.95rem; }
+.meta{ font-size:0.85rem; color:#666; }
+.toggle-row{ display:flex; align-items:center; gap:8px; }
+.row { display:flex; gap:10px; align-items:center; }
+.flex-2{ flex:2; }
+.flex-1{ flex:1; }
+.small-btn{ padding:6px 8px; border-radius:6px; font-weight:700; border:none; cursor:pointer; }
+.ghost{ background:transparent; border:1px solid var(--border-color); }
+@media (max-width:700px){
+  .kv label{ min-width:90px; }
+  .header{ flex-direction:column; align-items:flex-start; gap:6px; }
 }
 </style>
 </head>
 <body>
-
 <div class="container">
-<div class="tab-nav">
-    <button class="tab-button active" onclick="openTab(event, 'patient-info')"> Patient Info</button>
-    <button class="tab-button" onclick="openTab(event, 'vitals')"> Vitals</button>
-    <button class="tab-button" onclick="openTab(event, 'gcs')"> GCS</button>
-    <button class="tab-button" onclick="openTab(event, 'notes')"> Notes</button>
-    <button class="tab-button" onclick="openTab(event, 'results')"> Results</button>
-</div>
+  <div class="header">
+    <div class="app-title">Start Vitals</div>
+    <div class="meta">Offline-ready • Lightweight</div>
+    <div class="controls">Responder ID & incident will be included in reports</div>
+  </div>
 
-<div id="patient-info" class="tab-content active">
+  <div class="tab-nav" role="tablist">
+    <button class="tab-button active" onclick="openTab(event,'patient-info')">Patient Info</button>
+    <button class="tab-button" onclick="openTab(event,'vitals')">Vitals</button>
+    <button class="tab-button" onclick="openTab(event,'gcs')">GCS</button>
+    <button class="tab-button" onclick="openTab(event,'notes')">Notes</button>
+    <button class="tab-button" onclick="openTab(event,'results')">Results</button>
+  </div>
+
+  <!-- PATIENT INFO -->
+  <div id="patient-info" class="tab-content active">
     <h2>Patient Information</h2>
     <div class="form-group">
-        <label for="patient-name">Name</label>
-        <input type="text" id="patient-name" placeholder="e.g., John Doe">
+      <label for="responder-id">Responder ID</label>
+      <input id="responder-id" placeholder="e.g., ST186">
     </div>
     <div class="form-group">
-        <label for="patient-age">Age</label>
-        <input type="number" id="patient-age" placeholder="e.g., 35">
+      <label for="incident-type">Incident Type</label>
+      <input id="incident-type" placeholder="e.g., MVA, Suspected cardiac, Fall">
     </div>
     <div class="form-group">
-        <label for="allergies">Allergies</label>
-        <input type="text" id="allergies" placeholder="e.g., Penicillin, Peanuts">
+      <label for="patient-name">Name</label>
+      <input id="patient-name" placeholder="e.g., John Doe">
     </div>
     <div class="form-group">
-        <label for="medication">Medication</label>
-        <input type="text" id="medication" placeholder="e.g., Metformin, Lisinopril">
+      <label for="patient-age">Age</label>
+      <input id="patient-age" type="number" placeholder="e.g., 35">
     </div>
     <div class="form-group">
-        <label for="history">Past History</label>
-        <input type="text" id="history" placeholder="e.g., Diabetes, Hypertension">
+      <label for="allergies">Allergies</label>
+      <input id="allergies" placeholder="e.g., Penicillin, Peanuts">
     </div>
     <div class="form-group">
-        <label for="last-intake">Last Intake (Food/Drink)</label>
-        <input type="text" id="last-intake" placeholder="e.g., Water at 10:00 AM">
+      <label for="medication">Medication</label>
+      <input id="medication" placeholder="e.g., Metformin, Lisinopril">
     </div>
-</div>
+    <div class="form-group">
+      <label for="history">Past History</label>
+      <input id="history" placeholder="e.g., Diabetes, Hypertension">
+    </div>
+    <div class="form-group">
+      <label for="last-intake">Last Intake (Food/Drink)</label>
+      <input id="last-intake" placeholder="e.g., Water at 10:00 AM">
+    </div>
+  </div>
 
-<div id="vitals" class="tab-content">
-<!-- All previous vitals fields preserved -->
-<h2>Vitals</h2>
-<div class="form-group">
-    <label for="bp">Blood Pressure (BP)</label>
-    <div class="input-group">
-        <input type="number" id="bp-sys" placeholder="Systolic">
+  <!-- VITALS -->
+  <div id="vitals" class="tab-content">
+    <h2>Vitals</h2>
+    <div id="vitals-alert" class="alert-banner alert-none"></div>
+
+    <div class="form-group">
+      <label>Blood Pressure (mmHg)</label>
+      <div class="input-group">
+        <input id="bp-sys" type="number" placeholder="Systolic">
         <span>/</span>
-        <input type="number" id="bp-dia" placeholder="Diastolic">
+        <input id="bp-dia" type="number" placeholder="Diastolic">
         <span class="input-group-addon">mmHg</span>
+      </div>
     </div>
-</div>
-<div class="form-group">
-    <label for="pulse">Pulse</label>
-    <div class="input-group">
-        <input type="number" id="pulse" placeholder="e.g., 80">
+
+    <div class="form-group">
+      <label for="pulse">Pulse</label>
+      <div class="input-group">
+        <input id="pulse" type="number" placeholder="e.g., 80">
         <span class="input-group-addon">bpm</span>
+      </div>
     </div>
-</div>
-<div class="form-group">
-    <label for="spo2">SPO2</label>
-    <div class="input-group">
-        <input type="number" id="spo2" placeholder="e.g., 98">
+
+    <div class="form-group">
+      <label for="spo2">SPO₂</label>
+      <div class="input-group">
+        <input id="spo2" type="number" placeholder="e.g., 98">
         <span class="input-group-addon">%</span>
-        <input type="checkbox" id="on-ra">
-        <label for="on-ra">On Room Air</label>
+        <input id="on-o2" type="checkbox" style="margin-left:8px">
+        <label for="on-o2" class="small" style="margin-left:4px">On O₂</label>
+        <input id="o2-flow" placeholder="L/min (optional)" style="width:110px; margin-left:8px;">
+      </div>
     </div>
-</div>
-<div class="form-group">
-    <label for="rrate">Respiratory Rate</label>
-    <div class="input-group">
-        <input type="number" id="rrate" placeholder="e.g., 16">
+
+    <div class="form-group">
+      <label for="rrate">Respiratory Rate</label>
+      <div class="input-group">
+        <input id="rrate" type="number" placeholder="e.g., 16">
         <span class="input-group-addon">/min</span>
+      </div>
     </div>
-</div>
-<div class="form-group">
-    <label for="hgt">Blood Glucose (HGT)</label>
-    <div class="input-group">
-        <input type="number" id="hgt" placeholder="e.g., 5.5" step="0.1">
+
+    <div class="form-group">
+      <label for="hgt">Blood Glucose (HGT)</label>
+      <div class="input-group">
+        <input id="hgt" type="number" step="0.1" placeholder="e.g., 5.5">
         <span class="input-group-addon">mmol/L</span>
+      </div>
     </div>
-</div>
-<div class="form-group">
-    <label for="temp">Temperature</label>
-    <div class="input-group">
-        <input type="number" id="temp" placeholder="e.g., 36.8" step="0.1">
+
+    <div class="form-group">
+      <label for="temp">Temperature</label>
+      <div class="input-group">
+        <input id="temp" type="number" step="0.1" placeholder="e.g., 36.8">
         <span class="input-group-addon">°C</span>
+      </div>
     </div>
-</div>
-<div class="form-group">
-    <label for="cap-refill">Capillary Refill</label>
-    <div class="input-group">
-        <input type="number" id="cap-refill" placeholder="e.g., 2">
+
+    <div class="form-group">
+      <label for="cap-refill">Capillary Refill</label>
+      <div class="input-group">
+        <input id="cap-refill" type="number" placeholder="e.g., 2">
         <span class="input-group-addon">s</span>
+      </div>
     </div>
-</div>
-<div class="form-group">
-    <label for="pupils">Pupils</label>
-    <div class="input-group">
-        <input type="number" id="pupils" placeholder="e.g., 3">
+
+    <div class="form-group">
+      <label>Pupils (Left / Right)</label>
+      <div class="input-group">
+        <input id="pupil-left" type="number" placeholder="L mm">
+        <input id="pupil-right" type="number" placeholder="R mm">
         <span class="input-group-addon">mm</span>
+      </div>
     </div>
-</div>
-<div class="form-group">
-    <label for="pain">Pain Score</label>
-    <div class="input-group">
-        <input type="number" id="pain" placeholder="e.g., 7" min="0" max="10">
-        <span class="input-group-addon">/ 10</span>
+
+    <div class="form-group">
+      <label for="pain">Pain Score</label>
+      <div class="input-group">
+        <input id="pain" type="number" min="0" max="10" placeholder="e.g., 7">
+        <span class="input-group-addon">/10</span>
+      </div>
     </div>
-</div>
-</div>
 
-<div id="gcs" class="tab-content">
-<h2>Glasgow Coma Scale (GCS)</h2>
-<!-- All previous GCS fields preserved -->
-<div class="gcs-section">
-    <h3> Eye Opening Response</h3>
-    <label class="gcs-option"><input type="radio" name="gcs-eye" value="4"> Spontaneous (4)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-eye" value="3"> To Speech (3)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-eye" value="2"> To Pain (2)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-eye" value="1"> No Response (1)</label>
-</div>
-<div class="gcs-section">
-    <h3> Verbal Response</h3>
-    <label class="gcs-option"><input type="radio" name="gcs-verbal" value="5"> Orientated (5)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-verbal" value="4"> Confused (4)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-verbal" value="3"> Inappropriate Words (3)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-verbal" value="2"> Incomprehensible Sounds (2)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-verbal" value="1"> No Response (1)</label>
-</div>
-<div class="gcs-section">
-    <h3> Motor Response</h3>
-    <label class="gcs-option"><input type="radio" name="gcs-motor" value="6"> Obeys Commands (6)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-motor" value="5"> Localises to Pain (5)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-motor" value="4"> Withdraws from Pain (4)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-motor" value="3"> Flexion to Pain (decorticate) (3)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-motor" value="2"> Extension to Pain (decerebrate) (2)</label>
-    <label class="gcs-option"><input type="radio" name="gcs-motor" value="1"> No Response (1)</label>
-</div>
-<div id="gcs-total">Total GCS Score: 0 / 15</div>
-</div>
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+      <button class="btn btn-primary" onclick="submitVitals()">Submit Vitals</button>
+      <button class="btn ghost small-btn" onclick="clearVitalsInputs()">Clear Inputs</button>
+      <div style="margin-left:auto;" class="small">Vitals log kept locally for this patient</div>
+    </div>
 
-<div id="notes" class="tab-content">
-<h2>Signs/Symptoms & Notes</h2>
-<div class="form-group">
-     <label for="signs-symptoms">Signs / Symptoms</label>
-     <textarea id="signs-symptoms" placeholder="Describe patient's signs and symptoms..."></textarea>
-</div>
-<div class="form-group">
-     <label for="general-notes">Additional Notes</label>
-     <textarea id="general-notes" placeholder="Any other relevant information..."></textarea>
-</div>
-</div>
+    <div>
+      <label class="small">Recent Vitals (newest first)</label>
+      <div id="vitals-log" class="log-list" aria-live="polite"></div>
+    </div>
+  </div>
 
-<div id="results" class="tab-content">
-<h2>Consolidated Results</h2>
-<div class="form-group">
-     <button class="btn btn-primary" onclick="generateResults()">Generate Handover Report</button>
-</div>
-<div class="form-group">
-    <label for="results-output">Copy the text below:</label>
-    <textarea id="results-output" readonly></textarea>
-</div>
-<div class="form-group">
-     <button class="btn btn-secondary" onclick="copyResults()">Copy to Clipboard</button>
-</div>
-</div>
+  <!-- GCS -->
+  <div id="gcs" class="tab-content">
+    <h2>Glasgow Coma Scale (GCS)</h2>
+    <div id="gcs-alert" class="alert-banner alert-none"></div>
+
+    <div class="gcs-section">
+      <h3>Eye Opening Response</h3>
+      <label class="gcs-option"><input type="radio" name="gcs-eye" value="4"> Spontaneous (4)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-eye" value="3"> To Speech (3)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-eye" value="2"> To Pain (2)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-eye" value="1"> No Response (1)</label>
+    </div>
+
+    <div class="gcs-section">
+      <h3>Verbal Response</h3>
+      <label class="gcs-option"><input type="radio" name="gcs-verbal" value="5"> Orientated (5)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-verbal" value="4"> Confused (4)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-verbal" value="3"> Inappropriate Words (3)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-verbal" value="2"> Incomprehensible Sounds (2)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-verbal" value="1"> No Response (1)</label>
+    </div>
+
+    <div class="gcs-section">
+      <h3>Motor Response</h3>
+      <label class="gcs-option"><input type="radio" name="gcs-motor" value="6"> Obeys Commands (6)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-motor" value="5"> Localises to Pain (5)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-motor" value="4"> Withdraws from Pain (4)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-motor" value="3"> Flexion to Pain (decorticate) (3)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-motor" value="2"> Extension to Pain (decerebrate) (2)</label>
+      <label class="gcs-option"><input type="radio" name="gcs-motor" value="1"> No Response (1)</label>
+    </div>
+
+    <div id="gcs-total" class="meta">Total GCS Score: 0 / 15</div>
+
+    <div style="display:flex; gap:8px; align-items:center; margin-top:12px; margin-bottom:12px;">
+      <button class="btn btn-primary" onclick="submitGCS()">Submit GCS</button>
+      <button class="btn ghost small-btn" onclick="clearGCSInputs()">Clear</button>
+      <div style="margin-left:auto;" class="small">GCS log kept locally for this patient</div>
+    </div>
+
+    <div>
+      <label class="small">Recent GCS (newest first)</label>
+      <div id="gcs-log" class="log-list" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div id="notes" class="tab-content">
+    <h2>Signs/Symptoms & Notes</h2>
+
+    <div class="form-group">
+      <label for="signs-symptoms">Signs / Symptoms (static entry)</label>
+      <textarea id="signs-symptoms" placeholder="Describe patient's signs and symptoms..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="general-note">Add a timed note</label>
+      <textarea id="general-note" placeholder="e.g., Patient reports chest pain..."></textarea>
+    </div>
+
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+      <button class="btn btn-primary" onclick="addNote()">Add Note</button>
+      <button class="btn ghost small-btn" onclick="clearNoteInput()">Clear</button>
+    </div>
+
+    <div>
+      <label class="small">Notes (newest first)</label>
+      <div id="notes-log" class="log-list" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results" class="tab-content">
+    <h2>Consolidated Results</h2>
+    <div id="results-alert" class="alert-banner alert-none"></div>
+
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+      <label class="toggle-row"><input type="checkbox" id="show-timestamps" checked> Show timestamps</label>
+      <div style="margin-left:auto;" class="small">Timestamps will be included in copied report when checked</div>
+    </div>
+
+    <div class="form-group">
+      <button class="btn btn-primary" onclick="generateResults()">Generate Handover Report</button>
+      <button class="btn btn-secondary" style="margin-left:8px" onclick="clearAll()">Start New Patient</button>
+    </div>
+
+    <div class="form-group">
+      <label for="results-output">Copy the text below:</label>
+      <textarea id="results-output" readonly></textarea>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-secondary" onclick="copyResults()">Copy to Clipboard</button>
+      <button class="btn ghost small-btn" onclick="downloadReport()">Download .txt</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
-// Tab switching
-function openTab(evt, tabName) {
-    let i, tabcontent, tabbuttons;
-    tabcontent = document.getElementsByClassName("tab-content");
-    for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; }
-    tabbuttons = document.getElementsByClassName("tab-button");
-    for (i = 0; i < tabbuttons.length; i++) { tabbuttons[i].className = tabbuttons[i].className.replace(" active", ""); }
-    document.getElementById(tabName).style.display = "block";
-    evt.currentTarget.className += " active";
+/* -------------------------
+   In-memory data structures
+   ------------------------- */
+let patientInfo = {
+  responderId: '',
+  incident: '',
+  name: '',
+  age: '',
+  allergies: '',
+  medication: '',
+  history: '',
+  lastIntake: ''
+};
+
+let vitalsLog = []; // newest first
+let gcsLog = [];    // newest first
+let notesLog = [];  // newest first
+
+/* -------------------------
+   Utility helpers
+   ------------------------- */
+function nowTimestamp() {
+  const d = new Date();
+  // hh:mm (24h)
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return `${hh}:${mm}`;
 }
 
-// GCS calculation
-const gcsInputs = document.querySelectorAll('input[name="gcs-eye"], input[name="gcs-verbal"], input[name="gcs-motor"]');
-gcsInputs.forEach(input => { input.addEventListener('change', calculateGCS); });
-
-function calculateGCS() {
-    const eyeScore = parseInt(document.querySelector('input[name="gcs-eye"]:checked')?.value || 0);
-    const verbalScore = parseInt(document.querySelector('input[name="gcs-verbal"]:checked')?.value || 0);
-    const motorScore = parseInt(document.querySelector('input[name="gcs-motor"]:checked')?.value || 0);
-    const total = eyeScore + verbalScore + motorScore;
-    let gcsBreakdown = "";
-    if (eyeScore > 0 && verbalScore > 0 && motorScore > 0) { gcsBreakdown = ` (E${eyeScore} V${verbalScore} M${motorScore})`; }
-    document.getElementById('gcs-total').innerText = `Total GCS Score: ${total} / 15${gcsBreakdown}`;
+function formatDateTimeISO() {
+  return new Date().toISOString();
 }
 
-// Results generation
+/* Trend detection rules:
+   We'll detect trends comparing latest two entries (if available).
+   - BP systolic drop: moderate >=20 (amber), severe >=30 (red)
+   - Pulse increase: moderate >=20 (amber), severe >=30 (red)
+   - SPO2 drop: moderate >=4 (amber), severe >=8 (red)
+   - GCS drop: moderate >=2 (amber), severe >=3 (red)
+   Also absolute thresholds: systolic <90 red, spo2 <90 red, hr >130 red, gcs <=8 red
+*/
+function analyzeTrends() {
+  const issues = [];
+  // Vitals trend checks
+  if (vitalsLog.length >= 2) {
+    const newest = vitalsLog[0];
+    const prev = vitalsLog[1];
+
+    // BP systolic
+    if (newest.bpSys && prev.bpSys) {
+      const diffSys = Number(prev.bpSys) - Number(newest.bpSys); // drop is positive
+      if (diffSys >= 30) issues.push({severity:'red', text:`Systolic BP dropped by ${diffSys} mmHg`});
+      else if (diffSys >= 20) issues.push({severity:'amber', text:`Systolic BP dropped by ${diffSys} mmHg`});
+    }
+    // Pulse increase
+    if (newest.pulse && prev.pulse) {
+      const diffPulse = Number(newest.pulse) - Number(prev.pulse);
+      if (diffPulse >= 30) issues.push({severity:'red', text:`Pulse increased by ${diffPulse} bpm`});
+      else if (diffPulse >= 20) issues.push({severity:'amber', text:`Pulse increased by ${diffPulse} bpm`});
+    }
+    // SPO2 drop
+    if (newest.spo2 && prev.spo2) {
+      const diffSp = Number(prev.spo2) - Number(newest.spo2);
+      if (diffSp >= 8) issues.push({severity:'red', text:`SPO₂ dropped by ${diffSp}%`});
+      else if (diffSp >= 4) issues.push({severity:'amber', text:`SPO₂ dropped by ${diffSp}%`});
+    }
+  }
+
+  // Absolute thresholds check against newest
+  if (vitalsLog.length >= 1) {
+    const latest = vitalsLog[0];
+    if (latest.bpSys && Number(latest.bpSys) < 90) issues.push({severity:'red', text:'Systolic BP < 90 mmHg'});
+    if (latest.spo2 && Number(latest.spo2) < 90) issues.push({severity:'red', text:'SPO₂ < 90%'});
+    if (latest.pulse && Number(latest.pulse) > 130) issues.push({severity:'red', text:'Pulse > 130 bpm'});
+  }
+
+  // GCS trends
+  if (gcsLog.length >= 2) {
+    const n = gcsLog[0].total;
+    const p = gcsLog[1].total;
+    const diff = Number(p) - Number(n); // drop positive
+    if (diff >= 3) issues.push({severity:'red', text:`GCS dropped by ${diff}`});
+    else if (diff >= 2) issues.push({severity:'amber', text:`GCS dropped by ${diff}`});
+  }
+  if (gcsLog.length >=1) {
+    const latestG = gcsLog[0].total;
+    if (latestG <= 8) issues.push({severity:'red', text:`GCS <= 8 (current ${latestG})`});
+  }
+
+  // Decide highest severity to display banner
+  let severity = null;
+  for (const it of issues) {
+    if (it.severity === 'red') { severity = 'red'; break; }
+    if (it.severity === 'amber' && severity !== 'red') severity = 'amber';
+  }
+  return {issues, severity};
+}
+
+/* -------------------------
+   UI helpers: logs + alerts
+   ------------------------- */
+function renderVitalsLog() {
+  const el = document.getElementById('vitals-log');
+  el.innerHTML = '';
+  if (vitalsLog.length === 0) { el.innerHTML = '<div class="log-item meta">No vitals recorded yet</div>'; return; }
+  vitalsLog.forEach(item => {
+    const lines = [];
+    if (item.bpSys && item.bpDia) lines.push(`BP: ${item.bpSys}/${item.bpDia} mmHg`);
+    if (item.pulse) lines.push(`Pulse: ${item.pulse} bpm`);
+    if (item.spo2) {
+      let s = `SPO₂: ${item.spo2}%`;
+      if (item.onO2) s += ` (On O₂ ${item.o2Flow || 'N/A'})`;
+      lines.push(s);
+    }
+    if (item.rrate) lines.push(`Resp Rate: ${item.rrate}/min`);
+    if (item.temp) lines.push(`Temp: ${item.temp} °C`);
+    if (item.capRefill) lines.push(`Cap Refill: ${item.capRefill} s`);
+    if (item.pupilLeft || item.pupilRight) lines.push(`Pupils: L${item.pupilLeft || ''} R${item.pupilRight || ''}`);
+    if (item.pain) lines.push(`Pain: ${item.pain}/10`);
+
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — ${lines.join(' • ')}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderGcsLog() {
+  const el = document.getElementById('gcs-log');
+  el.innerHTML = '';
+  if (gcsLog.length === 0) { el.innerHTML = '<div class="log-item meta">No GCS recorded yet</div>'; return; }
+  gcsLog.forEach(item=>{
+    const div = document.createElement('div');
+    div.className='log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — Total: ${item.total}/15 (E${item.eye} V${item.verbal} M${item.motor})</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderNotesLog() {
+  const el = document.getElementById('notes-log');
+  el.innerHTML = '';
+  if (notesLog.length === 0) { el.innerHTML = '<div class="log-item meta">No notes added</div>'; return; }
+  notesLog.forEach(n=>{
+    const div = document.createElement('div');
+    div.className='log-item';
+    div.innerHTML = `<div><strong>${n.time}</strong> — ${n.note}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderAlertsToTabs() {
+  const res = analyzeTrends();
+  const severity = res.severity;
+
+  const vitalsBanner = document.getElementById('vitals-alert');
+  const gcsBanner = document.getElementById('gcs-alert');
+  const resultsBanner = document.getElementById('results-alert');
+
+  // Clear
+  [vitalsBanner,gcsBanner,resultsBanner].forEach(b=>{ b.className='alert-banner alert-none'; b.textContent=''; });
+
+  if (!severity) return; // no banner
+
+  const message = res.issues.map(i=>i.text).slice(0,3).join(' • '); // top items
+  const bannerClass = severity === 'red' ? 'alert- red' : 'alert- amber'; // fallback below
+  const className = (severity === 'red') ? 'alert-banner alert-red' : 'alert-banner alert-amber';
+  [vitalsBanner,gcsBanner,resultsBanner].forEach(b=>{
+    b.className = className;
+    b.textContent = `⚠️ Possible deterioration — ${message}`;
+  });
+}
+
+/* -------------------------
+   Submit/clear functions
+   ------------------------- */
+function submitVitals() {
+  // pull patient info (keep patientInfo up to date)
+  patientInfo.responderId = document.getElementById('responder-id').value.trim();
+  patientInfo.incident = document.getElementById('incident-type').value.trim();
+  patientInfo.name = document.getElementById('patient-name').value.trim();
+  patientInfo.age = document.getElementById('patient-age').value.trim();
+  patientInfo.allergies = document.getElementById('allergies').value.trim();
+  patientInfo.medication = document.getElementById('medication').value.trim();
+  patientInfo.history = document.getElementById('history').value.trim();
+  patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
+
+  const item = {
+    time: nowTimestamp(),
+    iso: formatDateTimeISO(),
+    bpSys: document.getElementById('bp-sys').value.trim(),
+    bpDia: document.getElementById('bp-dia').value.trim(),
+    pulse: document.getElementById('pulse').value.trim(),
+    spo2: document.getElementById('spo2').value.trim(),
+    onO2: document.getElementById('on-o2').checked,
+    o2Flow: document.getElementById('o2-flow').value.trim(),
+    rrate: document.getElementById('rrate').value.trim(),
+    hgt: document.getElementById('hgt').value.trim(),
+    temp: document.getElementById('temp').value.trim(),
+    capRefill: document.getElementById('cap-refill').value.trim(),
+    pupilLeft: document.getElementById('pupil-left').value.trim(),
+    pupilRight: document.getElementById('pupil-right').value.trim(),
+    pain: document.getElementById('pain').value.trim()
+  };
+
+  // Prepend newest
+  vitalsLog.unshift(item);
+  // Keep only reasonable history length (optional) - here keep last 100
+  if (vitalsLog.length > 200) vitalsLog.length = 200;
+
+  renderVitalsLog();
+  renderAlertsToTabs();
+
+  // Clear vitals inputs to allow new reading
+  clearVitalsInputs();
+}
+
+function clearVitalsInputs() {
+  ['bp-sys','bp-dia','pulse','spo2','on-o2','o2-flow','rrate','hgt','temp','cap-refill','pupil-left','pupil-right','pain'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+}
+
+function submitGCS() {
+  // calculate scores (read selected radio values)
+  const eye = parseInt(document.querySelector('input[name="gcs-eye"]:checked')?.value || 0);
+  const verbal = parseInt(document.querySelector('input[name="gcs-verbal"]:checked')?.value || 0);
+  const motor = parseInt(document.querySelector('input[name="gcs-motor"]:checked')?.value || 0);
+  const total = (eye||0) + (verbal||0) + (motor||0);
+  const item = { time: nowTimestamp(), iso: formatDateTimeISO(), eye, verbal, motor, total };
+  gcsLog.unshift(item);
+  if (gcsLog.length > 200) gcsLog.length = 200;
+
+  document.getElementById('gcs-total').innerText = `Total GCS Score: ${total} / 15 (E${eye} V${verbal} M${motor})`;
+  renderGcsLog();
+  renderAlertsToTabs();
+
+  // Clear selection to allow new reading
+  clearGCSInputs();
+}
+
+function clearGCSInputs() {
+  ['gcs-eye','gcs-verbal','gcs-motor'].forEach(name=>{
+    document.querySelectorAll(`input[name="${name}"]`).forEach(i=>i.checked=false);
+  });
+  document.getElementById('gcs-total').innerText = 'Total GCS Score: 0 / 15';
+}
+
+function addNote() {
+  const text = document.getElementById('general-note').value.trim();
+  if (!text) { alert('Add a note before hitting Add Note'); return; }
+  notesLog.unshift({ time: nowTimestamp(), iso: formatDateTimeISO(), note: text });
+  if (notesLog.length > 200) notesLog.length = 200;
+  renderNotesLog();
+  document.getElementById('general-note').value = '';
+}
+
+/* -------------------------
+   Report generation
+   ------------------------- */
 function generateResults() {
-    let report = "--- PATIENT HANDOVER REPORT ---\n\n";
-    const addLine = (label, value, unit="") => { if(value && value.trim()!==""){ report += `${label.padEnd(15)}: ${value}${unit}\n`; }};
-    
-    addLine("Name", document.getElementById('patient-name').value);
-    addLine("Age", document.getElementById('patient-age').value);
-    addLine("Allergies", document.getElementById('allergies').value);
-    addLine("Medication", document.getElementById('medication').value);
-    addLine("Past History", document.getElementById('history').value);
-    addLine("Last Intake", document.getElementById('last-intake').value);
+  // Ensure patient info up to date
+  patientInfo.responderId = document.getElementById('responder-id').value.trim();
+  patientInfo.incident = document.getElementById('incident-type').value.trim();
+  patientInfo.name = document.getElementById('patient-name').value.trim();
+  patientInfo.age = document.getElementById('patient-age').value.trim();
+  patientInfo.allergies = document.getElementById('allergies').value.trim();
+  patientInfo.medication = document.getElementById('medication').value.trim();
+  patientInfo.history = document.getElementById('history').value.trim();
+  patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
 
-    report += "\n--- VITALS ---\n\n";
-    const bpSys = document.getElementById('bp-sys').value;
-    const bpDia = document.getElementById('bp-dia').value;
-    if(bpSys && bpDia){ report += `BP             : ${bpSys}/${bpDia} mmHg\n`; }
-    addLine("Pulse", document.getElementById('pulse').value," bpm");
-    const spo2 = document.getElementById('spo2').value;
-    const onRa = document.getElementById('on-ra').checked;
-    if(spo2){ report += `SPO2           : ${spo2}% ${onRa? '(On Room Air)':''}\n`; }
-    addLine("Resp Rate", document.getElementById('rrate').value,"/min");
-    addLine("Blood Glucose", document.getElementById('hgt').value," mmol/L");
-    addLine("Temperature", document.getElementById('temp').value," °C");
-    addLine("Cap Refill", document.getElementById('cap-refill').value," s");
-    addLine("Pupils", document.getElementById('pupils').value," mm");
-    addLine("Pain", document.getElementById('pain').value," /10");
+  // Update alerts in case user viewed Results
+  renderAlertsToTabs();
 
-    report += "\n--- GCS ---\n\n" + document.getElementById('gcs-total').innerText + "\n\n";
-    report += "--- SIGNS / SYMPTOMS ---\n\n" + document.getElementById('signs-symptoms').value + "\n\n";
-    report += "--- ADDITIONAL NOTES ---\n\n" + document.getElementById('general-notes').value + "\n";
-    
-    document.getElementById('results-output').value = report;
+  const showTS = document.getElementById('show-timestamps').checked;
+  let report = `--- PATIENT HANDOVER REPORT ---\n\n`;
+  const addLine = (label, value, unit='') => { if (value && String(value).trim() !== '') report += `${label.padEnd(15)}: ${value}${unit}\n`; };
+
+  addLine('Responder ID', patientInfo.responderId);
+  addLine('Name', patientInfo.name);
+  addLine('Age', patientInfo.age);
+  addLine('Incident', patientInfo.incident);
+  addLine('Allergies', patientInfo.allergies);
+  addLine('Medication', patientInfo.medication);
+  addLine('Past History', patientInfo.history);
+  addLine('Last Intake', patientInfo.lastIntake);
+
+  report += `\n--- VITALS ---\n\n`;
+
+  // For each vitals entry, output only fields that exist, keeping structure tidy.
+  // Show newest-first as in your example (we have newest-first in arrays)
+  if (vitalsLog.length === 0) report += 'No vitals recorded\n';
+  else {
+    // Iterate through vitalsLog in insertion order (newest-first)
+    vitalsLog.forEach(v=>{
+      if (v.bpSys && v.bpDia) {
+        report += `BP             : ${v.bpSys}/${v.bpDia} mmHg${ showTS ? ' ' + v.time : '' }\n`;
+      }
+      if (v.pulse) report += `Pulse          : ${v.pulse} bpm${ showTS ? ' ' + v.time : '' }\n`;
+      if (v.spo2) {
+        const o2txt = v.onO2 ? ` (On O₂ ${v.o2Flow || ''})` : '';
+        report += `SPO2           : ${v.spo2}%${o2txt}${ showTS ? ' ' + v.time : '' }\n`;
+      }
+      if (v.rrate) report += `Resp Rate      : ${v.rrate}/min${ showTS ? ' ' + v.time : '' }\n`;
+      if (v.temp) report += `Temperature    : ${v.temp} °C${ showTS ? ' ' + v.time : '' }\n`;
+      if (v.capRefill) report += `Cap Refill     : ${v.capRefill} s${ showTS ? ' ' + v.time : '' }\n`;
+      if (v.pupilLeft || v.pupilRight) report += `Pupils         : L${v.pupilLeft || ''} R${v.pupilRight || ''}${ showTS ? ' ' + v.time : '' }\n`;
+      if (v.pain) report += `Pain           : ${v.pain} /10${ showTS ? ' ' + v.time : '' }\n`;
+      // small spacer between entries for readability
+      report += '\n';
+    });
+  }
+
+  report += `\n--- GCS ---\n\n`;
+  if (gcsLog.length === 0) report += 'No GCS recorded\n\n';
+  else {
+    gcsLog.forEach(g=>{
+      report += `Total GCS Score: ${g.total} / 15 (E${g.eye} V${g.verbal} M${g.motor})${ showTS ? ' ' + g.time : '' }\n\n`;
+    });
+  }
+
+  report += `--- SIGNS / SYMPTOMS ---\n\n`;
+  const signs = document.getElementById('signs-symptoms').value.trim();
+  report += (signs ? signs : '') + '\n\n';
+
+  report += `--- ADDITIONAL NOTES ---\n\n`;
+  if (notesLog.length === 0) report += '(none)\n';
+  else {
+    notesLog.forEach(n=>{
+      report += `${ showTS ? n.time + ' - ' : '' }${n.note}\n`;
+    });
+  }
+
+  // Add alerts summary at end if present (so receivers see it in handover too)
+  const trend = analyzeTrends();
+  if (trend.issues.length) {
+    report += `\n--- ALERTS ---\n\n`;
+    trend.issues.forEach(i=>{ report += `${i.text}\n`; });
+  }
+
+  document.getElementById('results-output').value = report;
+  renderAlertsToTabs();
 }
 
+/* -------------------------
+   Copy / Download helpers
+   ------------------------- */
 function copyResults() {
-    const resultsArea = document.getElementById('results-output');
-    resultsArea.select();
-    resultsArea.setSelectionRange(0, 99999);
-    document.execCommand('copy');
-    alert("Copied to clipboard!");
+  const resultsArea = document.getElementById('results-output');
+  if (!resultsArea.value) { alert('Generate report first'); return; }
+  resultsArea.select();
+  navigator.clipboard.writeText(resultsArea.value).then(()=>alert('Report copied to clipboard!'), ()=>alert('Copy failed'));
 }
-</script>
 
+function downloadReport() {
+  const txt = document.getElementById('results-output').value;
+  if (!txt) { alert('Generate report first'); return; }
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `handover_${new Date().toISOString().replace(/[:.]/g,'-')}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* -------------------------
+   Small utilities
+   ------------------------- */
+function clearNoteInput() { document.getElementById('general-note').value = ''; }
+function clearVitalsLog() { vitalsLog = []; renderVitalsLog(); renderAlertsToTabs(); }
+function clearGcsLog() { gcsLog = []; renderGcsLog(); renderAlertsToTabs(); }
+function clearNotesLog() { notesLog = []; renderNotesLog(); }
+function clearAll() {
+  if (!confirm('Start new patient? This will clear logs and fields.')) return;
+  // Clear patient fields
+  ['responder-id','incident-type','patient-name','patient-age','allergies','medication','history','last-intake'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  // Clear logs
+  vitalsLog=[]; gcsLog=[]; notesLog=[];
+  renderVitalsLog(); renderGcsLog(); renderNotesLog(); document.getElementById('results-output').value='';
+  renderAlertsToTabs();
+}
+
+/* -------------------------
+   Tab behaviour & init
+   ------------------------- */
+function openTab(evt, tabName) {
+  const tabs = document.getElementsByClassName('tab-content');
+  for (let t of tabs) t.style.display = 'none';
+  const btns = document.getElementsByClassName('tab-button');
+  for (let b of btns) b.className = b.className.replace(' active','');
+  document.getElementById(tabName).style.display = 'block';
+  evt.currentTarget.className += ' active';
+}
+
+// update gcs total live
+document.addEventListener('change', function(e){
+  if (e.target && (e.target.name === 'gcs-eye' || e.target.name === 'gcs-verbal' || e.target.name === 'gcs-motor')){
+    const eye = parseInt(document.querySelector('input[name="gcs-eye"]:checked')?.value || 0);
+    const verbal = parseInt(document.querySelector('input[name="gcs-verbal"]:checked')?.value || 0);
+    const motor = parseInt(document.querySelector('input[name="gcs-motor"]:checked')?.value || 0);
+    const total = (eye||0)+(verbal||0)+(motor||0);
+    document.getElementById('gcs-total').innerText = `Total GCS Score: ${total} / 15 (E${eye} V${verbal} M${motor})`;
+  }
+});
+
+/* initial render */
+renderVitalsLog();
+renderGcsLog();
+renderNotesLog();
+renderAlertsToTabs();
+
+</script>
 </body>
 </html>
