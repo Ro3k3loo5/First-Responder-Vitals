@@ -77,7 +77,8 @@ body{
 #gcs-total{ font-size:1.2rem; font-weight:700; text-align:center; padding:10px; background:var(--primary-accent); color:#fff; border-radius:6px; margin-top:10px; }
 .btn{ padding:10px 14px; border:none; border-radius:6px; cursor:pointer; font-weight:700; }
 .btn-primary{ background:var(--secondary-accent); color:#fff; }
-.btn-secondary{ background:#bdc3c7; color:var(--text-color); }
+.btn-secondary{ background:#bdc3c7; color:#var(--text-color); }
+.btn-danger{ background:#e74c3c; color:#fff; }
 .small{ font-size:0.9rem; color:#555; }
 #results-output{ white-space:pre-wrap; background:#ecf0f1; border:1px solid var(--border-color); padding:12px; border-radius:6px; min-height:180px; font-family:"Courier New", monospace; }
 .kv { display:flex; gap:10px; align-items:center; margin-bottom:8px; }
@@ -98,6 +99,87 @@ body{
 .flex-1{ flex:1; }
 .small-btn{ padding:6px 8px; border-radius:6px; font-weight:700; border:none; cursor:pointer; }
 .ghost{ background:transparent; border:1px solid var(--border-color); }
+
+/* New styles for vitals chart */
+.vitals-chart {
+  display: flex;
+  align-items: flex-end;
+  height: 100px;
+  margin: 10px 0;
+  border-left: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+.chart-title {
+  width: 100%;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+}
+.chart-bar {
+  flex: 1;
+  background-color: var(--primary-accent);
+  margin: 0 2px;
+  min-height: 5px;
+}
+
+/* Patient selector styles */
+.patient-selector {
+  margin-bottom: 16px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+.patient-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.patient-chip {
+  padding: 6px 12px;
+  background: #bdc3c7; /* Changed to grey for inactive patients */
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.patient-chip.active {
+  background: var(--secondary-accent); /* Green for active patient */
+}
+.patient-chip .remove {
+  font-weight: bold;
+  margin-left: 4px;
+}
+.current-patient {
+  font-weight: bold;
+  color: var(--primary-accent);
+  margin-bottom: 8px;
+}
+
+/* Current patient display for tabs */
+.tab-patient-header {
+  background: #f0f7f4;
+  border-left: 4px solid var(--secondary-accent);
+  padding: 8px 12px;
+  margin: -18px -18px 16px -18px;
+  font-weight: 600;
+  color: var(--secondary-accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tab-patient-header .patient-indicator {
+  font-size: 0.8rem;
+  background: var(--secondary-accent);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
 @media (max-width:700px){
   .kv label{ min-width:90px; }
   .header{ flex-direction:column; align-items:flex-start; gap:6px; }
@@ -122,43 +204,81 @@ body{
 
   <!-- PATIENT INFO -->
   <div id="patient-info" class="tab-content active">
+    <div class="tab-patient-header">
+      <span class="patient-indicator">CURRENT PATIENT</span>
+      <span id="patient-info-current">New Patient</span>
+    </div>
+    
     <h2>Patient Information</h2>
+    
+    <!-- Patient selector -->
+    <div class="patient-selector">
+      <div class="form-group">
+        <label>Current Patient</label>
+        <div id="current-patient-display" class="current-patient">New Patient</div>
+        <div id="patient-list" class="patient-list"></div>
+        <button id="add-patient-btn" class="btn btn-primary small-btn" onclick="addPatient()" style="margin-top: 8px;">+ Add Patient</button>
+      </div>
+    </div>
+
     <div class="form-group">
       <label for="responder-id">Responder ID</label>
-      <input id="responder-id" placeholder="e.g., ST186">
+      <input id="responder-id" placeholder="e.g., ST186" onchange="patientInfoChanged()">
     </div>
     <div class="form-group">
       <label for="incident-type">Incident Type</label>
-      <input id="incident-type" placeholder="e.g., MVA, Suspected cardiac, Fall">
+      <select id="incident-type" onchange="patientInfoChanged()">
+        <option value="">Select incident type</option>
+        <option value="MVA - Motor Vehicle Accident">MVA - Motor Vehicle Accident</option>
+        <option value="Fall">Fall</option>
+        <option value="Cardiac Arrest">Cardiac Arrest</option>
+        <option value="Chest Pain">Chest Pain</option>
+        <option value="Stroke / TIA">Stroke / TIA</option>
+        <option value="Breathing Difficulty">Breathing Difficulty</option>
+        <option value="Diabetic Emergency">Diabetic Emergency</option>
+        <option value="Seizure">Seizure</option>
+        <option value="Allergic Reaction">Allergic Reaction</option>
+        <option value="Trauma">Trauma</option>
+        <option value="Burns">Burns</option>
+        <option value="Overdose / Poisoning">Overdose / Poisoning</option>
+        <option value="Psychiatric Emergency">Psychiatric Emergency</option>
+        <option value="Obstetric Emergency">Obstetric Emergency</option>
+        <option value="Other">Other</option>
+      </select>
     </div>
     <div class="form-group">
       <label for="patient-name">Name</label>
-      <input id="patient-name" placeholder="e.g., John Doe">
+      <input id="patient-name" placeholder="e.g., John Doe" onchange="patientNameChanged()">
     </div>
     <div class="form-group">
       <label for="patient-age">Age</label>
-      <input id="patient-age" type="number" placeholder="e.g., 35">
+      <input id="patient-age" type="number" placeholder="e.g., 35" onchange="patientInfoChanged()">
     </div>
     <div class="form-group">
       <label for="allergies">Allergies</label>
-      <input id="allergies" placeholder="e.g., Penicillin, Peanuts">
+      <input id="allergies" placeholder="e.g., Penicillin, Peanuts" onchange="patientInfoChanged()">
     </div>
     <div class="form-group">
       <label for="medication">Medication</label>
-      <input id="medication" placeholder="e.g., Metformin, Lisinopril">
+      <input id="medication" placeholder="e.g., Metformin, Lisinopril" onchange="patientInfoChanged()">
     </div>
     <div class="form-group">
       <label for="history">Past History</label>
-      <input id="history" placeholder="e.g., Diabetes, Hypertension">
+      <input id="history" placeholder="e.g., Diabetes, Hypertension" onchange="patientInfoChanged()">
     </div>
     <div class="form-group">
       <label for="last-intake">Last Intake (Food/Drink)</label>
-      <input id="last-intake" placeholder="e.g., Water at 10:00 AM">
+      <input id="last-intake" placeholder="e.g., Water at 10:00 AM" onchange="patientInfoChanged()">
     </div>
   </div>
 
   <!-- VITALS -->
   <div id="vitals" class="tab-content">
+    <div class="tab-patient-header">
+      <span class="patient-indicator">CURRENT PATIENT</span>
+      <span id="vitals-current">New Patient</span>
+    </div>
+    
     <h2>Vitals</h2>
     <div id="vitals-alert" class="alert-banner alert-none"></div>
 
@@ -240,6 +360,40 @@ body{
       </div>
     </div>
 
+    <!-- New fields -->
+    <div class="form-group">
+      <label for="ecg">ECG Rhythm</label>
+      <select id="ecg">
+        <option value="">Select rhythm</option>
+        <option value="sinus">Sinus</option>
+        <option value="sinus-tach">Sinus Tachycardia</option>
+        <option value="sinus-brady">Sinus Bradycardia</option>
+        <option value="afib">Atrial Fibrillation</option>
+        <option value="vtach">Ventricular Tachycardia</option>
+        <option value="vfib">Ventricular Fibrillation</option>
+        <option value="asystole">Asystole</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="pain-location">Pain Location</label>
+      <input id="pain-location" placeholder="e.g., Chest, Left arm">
+    </div>
+
+    <div class="form-group">
+      <label for="skin">Skin Condition</label>
+      <select id="skin">
+        <option value="">Select condition</option>
+        <option value="normal">Normal</option>
+        <option value="pale">Pale</option>
+        <option value="cyanotic">Cyanotic</option>
+        <option value="flushed">Flushed</option>
+        <option value="mottled">Mottled</option>
+        <option value="diaphoretic">Diaphoretic</option>
+      </select>
+    </div>
+
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
       <button class="btn btn-primary" onclick="submitVitals()">Submit Vitals</button>
       <button class="btn ghost small-btn" onclick="clearVitalsInputs()">Clear Inputs</button>
@@ -250,10 +404,18 @@ body{
       <label class="small">Recent Vitals (newest first)</label>
       <div id="vitals-log" class="log-list" aria-live="polite"></div>
     </div>
+
+    <!-- Vitals chart -->
+    <div id="vitals-chart-container"></div>
   </div>
 
   <!-- GCS -->
   <div id="gcs" class="tab-content">
+    <div class="tab-patient-header">
+      <span class="patient-indicator">CURRENT PATIENT</span>
+      <span id="gcs-current">New Patient</span>
+    </div>
+    
     <h2>Glasgow Coma Scale (GCS)</h2>
     <div id="gcs-alert" class="alert-banner alert-none"></div>
 
@@ -300,11 +462,16 @@ body{
 
   <!-- NOTES -->
   <div id="notes" class="tab-content">
+    <div class="tab-patient-header">
+      <span class="patient-indicator">CURRENT PATIENT</span>
+      <span id="notes-current">New Patient</span>
+    </div>
+    
     <h2>Signs/Symptoms & Notes</h2>
 
     <div class="form-group">
       <label for="signs-symptoms">Signs / Symptoms (static entry)</label>
-      <textarea id="signs-symptoms" placeholder="Describe patient's signs and symptoms..."></textarea>
+      <textarea id="signs-symptoms" placeholder="Describe patient's signs and symptoms..." onchange="patientInfoChanged()"></textarea>
     </div>
 
     <div class="form-group">
@@ -317,6 +484,12 @@ body{
       <button class="btn ghost small-btn" onclick="clearNoteInput()">Clear</button>
     </div>
 
+    <!-- Audio recording -->
+    <div class="form-group">
+      <button id="record-note" class="btn btn-secondary">Record Audio Note</button>
+      <div id="audio-notes" class="log-list"></div>
+    </div>
+
     <div>
       <label class="small">Notes (newest first)</label>
       <div id="notes-log" class="log-list" aria-live="polite"></div>
@@ -325,6 +498,11 @@ body{
 
   <!-- RESULTS -->
   <div id="results" class="tab-content">
+    <div class="tab-patient-header">
+      <span class="patient-indicator">CURRENT PATIENT</span>
+      <span id="results-current">New Patient</span>
+    </div>
+    
     <h2>Consolidated Results</h2>
     <div id="results-alert" class="alert-banner alert-none"></div>
 
@@ -334,8 +512,12 @@ body{
     </div>
 
     <div class="form-group">
+      <label class="toggle-row"><input type="checkbox" id="sbar-format"> Use SBAR format</label>
+    </div>
+
+    <div class="form-group">
       <button class="btn btn-primary" onclick="generateResults()">Generate Handover Report</button>
-      <button class="btn btn-secondary" style="margin-left:8px" onclick="clearAll()">Start New Patient</button>
+      <button class="btn btn-danger" style="margin-left:8px" onclick="startNewScene()">Start New Scene</button>
     </div>
 
     <div class="form-group">
@@ -363,12 +545,21 @@ let patientInfo = {
   allergies: '',
   medication: '',
   history: '',
-  lastIntake: ''
+  lastIntake: '',
+  signsSymptoms: ''
 };
 
 let vitalsLog = []; // newest first
 let gcsLog = [];    // newest first
 let notesLog = [];  // newest first
+
+// Patient management
+let currentPatientId = null;
+let patients = {}; // Object to store multiple patients
+
+// Audio recording
+let mediaRecorder;
+let audioChunks = [];
 
 /* -------------------------
    Utility helpers
@@ -383,6 +574,313 @@ function nowTimestamp() {
 
 function formatDateTimeISO() {
   return new Date().toISOString();
+}
+
+// Local storage functions
+function saveToLocalStorage() {
+  localStorage.setItem('patientInfo', JSON.stringify(patientInfo));
+  localStorage.setItem('vitalsLog', JSON.stringify(vitalsLog));
+  localStorage.setItem('gcsLog', JSON.stringify(gcsLog));
+  localStorage.setItem('notesLog', JSON.stringify(notesLog));
+  localStorage.setItem('currentPatientId', currentPatientId);
+  localStorage.setItem('patients', JSON.stringify(patients));
+}
+
+function loadFromLocalStorage() {
+  const savedPatientInfo = localStorage.getItem('patientInfo');
+  if (savedPatientInfo) patientInfo = JSON.parse(savedPatientInfo);
+  
+  const savedVitals = localStorage.getItem('vitalsLog');
+  if (savedVitals) vitalsLog = JSON.parse(savedVitals);
+  
+  const savedGCS = localStorage.getItem('gcsLog');
+  if (savedGCS) gcsLog = JSON.parse(savedGCS);
+  
+  const savedNotes = localStorage.getItem('notesLog');
+  if (savedNotes) notesLog = JSON.parse(savedNotes);
+  
+  const savedCurrentPatientId = localStorage.getItem('currentPatientId');
+  if (savedCurrentPatientId) currentPatientId = savedCurrentPatientId;
+  
+  const savedPatients = localStorage.getItem('patients');
+  if (savedPatients) patients = JSON.parse(savedPatients);
+}
+
+// Patient management functions
+function addPatient() {
+  // Save current patient if exists
+  if (currentPatientId) {
+    patients[currentPatientId] = {
+      info: {...patientInfo},
+      vitals: [...vitalsLog],
+      gcs: [...gcsLog],
+      notes: [...notesLog]
+    };
+  }
+  
+  // Create new patient with empty data
+  const patientId = Date.now().toString();
+  patients[patientId] = {
+    info: {
+      responderId: patientInfo.responderId, // Keep responder ID
+      incident: '',
+      name: '',
+      age: '',
+      allergies: '',
+      medication: '',
+      history: '',
+      lastIntake: '',
+      signsSymptoms: ''
+    },
+    vitals: [],
+    gcs: [],
+    notes: []
+  };
+  
+  currentPatientId = patientId;
+  
+  // Clear all current data
+  patientInfo = {...patients[patientId].info};
+  vitalsLog = [];
+  gcsLog = [];
+  notesLog = [];
+  
+  // Update UI
+  updatePatientInfoFields();
+  renderVitalsLog();
+  renderGcsLog();
+  renderNotesLog();
+  renderPatientList();
+  renderVitalsChart();
+  renderAlertsToTabs();
+  updateCurrentPatientDisplay();
+  updateAllTabPatientDisplays();
+  
+  // Clear audio notes display
+  document.getElementById('audio-notes').innerHTML = '';
+  
+  saveToLocalStorage();
+}
+
+function switchPatient(patientId) {
+  if (!patients[patientId]) return;
+  
+  // Save current patient if exists
+  if (currentPatientId) {
+    patients[currentPatientId] = {
+      info: {...patientInfo},
+      vitals: [...vitalsLog],
+      gcs: [...gcsLog],
+      notes: [...notesLog]
+    };
+  }
+  
+  currentPatientId = patientId;
+  patientInfo = {...patients[patientId].info};
+  vitalsLog = [...patients[patientId].vitals];
+  gcsLog = [...patients[patientId].gcs];
+  notesLog = [...patients[patientId].notes];
+  
+  // Update UI
+  renderVitalsLog();
+  renderGcsLog();
+  renderNotesLog();
+  renderPatientList();
+  updatePatientInfoFields();
+  renderVitalsChart();
+  renderAlertsToTabs();
+  updateCurrentPatientDisplay();
+  updateAllTabPatientDisplays();
+  
+  // Clear audio notes display
+  document.getElementById('audio-notes').innerHTML = '';
+  
+  saveToLocalStorage();
+}
+
+function removePatient(patientId) {
+  if (!confirm('Remove this patient and all their data?')) return;
+  
+  delete patients[patientId];
+  
+  if (currentPatientId === patientId) {
+    // Switch to another patient or create new one
+    const remainingIds = Object.keys(patients);
+    if (remainingIds.length > 0) {
+      switchPatient(remainingIds[0]);
+    } else {
+      addPatient();
+    }
+  }
+  
+  saveToLocalStorage();
+  renderPatientList();
+  updateCurrentPatientDisplay();
+  updateAllTabPatientDisplays();
+}
+
+function renderPatientList() {
+  const patientListEl = document.getElementById('patient-list');
+  patientListEl.innerHTML = '';
+  
+  // Only show patients with names
+  const namedPatients = Object.keys(patients).filter(id => 
+    patients[id].info.name && patients[id].info.name.trim() !== ''
+  );
+  
+  if (namedPatients.length === 0) {
+    patientListEl.innerHTML = '<div class="meta">No named patients yet</div>';
+    return;
+  }
+  
+  namedPatients.forEach(id => {
+    const patient = patients[id];
+    const displayName = patient.info.name;
+    
+    const chip = document.createElement('div');
+    chip.className = `patient-chip ${id === currentPatientId ? 'active' : ''}`;
+    chip.innerHTML = `
+      ${displayName}
+      <span class="remove" onclick="event.stopPropagation(); removePatient('${id}')">×</span>
+    `;
+    chip.onclick = () => {
+      switchPatient(id);
+    };
+    
+    patientListEl.appendChild(chip);
+  });
+}
+
+function updateCurrentPatientDisplay() {
+  const displayEl = document.getElementById('current-patient-display');
+  if (patientInfo.name && patientInfo.name.trim() !== '') {
+    displayEl.textContent = patientInfo.name;
+  } else {
+    displayEl.textContent = 'New Patient';
+  }
+}
+
+// New function to update patient display in all tabs
+function updateAllTabPatientDisplays() {
+  const patientName = patientInfo.name && patientInfo.name.trim() !== '' ? patientInfo.name : 'New Patient';
+  
+  // Update all tab patient displays
+  document.getElementById('patient-info-current').textContent = patientName;
+  document.getElementById('vitals-current').textContent = patientName;
+  document.getElementById('gcs-current').textContent = patientName;
+  document.getElementById('notes-current').textContent = patientName;
+  document.getElementById('results-current').textContent = patientName;
+}
+
+function updatePatientInfoFields() {
+  document.getElementById('responder-id').value = patientInfo.responderId;
+  document.getElementById('incident-type').value = patientInfo.incident;
+  document.getElementById('patient-name').value = patientInfo.name;
+  document.getElementById('patient-age').value = patientInfo.age;
+  document.getElementById('allergies').value = patientInfo.allergies;
+  document.getElementById('medication').value = patientInfo.medication;
+  document.getElementById('history').value = patientInfo.history;
+  document.getElementById('last-intake').value = patientInfo.lastIntake;
+  document.getElementById('signs-symptoms').value = patientInfo.signsSymptoms || '';
+}
+
+// New function to handle patient info changes
+function patientInfoChanged() {
+  // Update patientInfo object with current form values
+  patientInfo.responderId = document.getElementById('responder-id').value.trim();
+  patientInfo.incident = document.getElementById('incident-type').value;
+  patientInfo.age = document.getElementById('patient-age').value.trim();
+  patientInfo.allergies = document.getElementById('allergies').value.trim();
+  patientInfo.medication = document.getElementById('medication').value.trim();
+  patientInfo.history = document.getElementById('history').value.trim();
+  patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
+  patientInfo.signsSymptoms = document.getElementById('signs-symptoms').value.trim();
+  
+  // Save current patient data
+  if (currentPatientId) {
+    patients[currentPatientId] = {
+      info: {...patientInfo},
+      vitals: [...vitalsLog],
+      gcs: [...gcsLog],
+      notes: [...notesLog]
+    };
+    
+    saveToLocalStorage();
+  }
+}
+
+// Function to handle patient name changes (special handling for patient list)
+function patientNameChanged() {
+  const newName = document.getElementById('patient-name').value.trim();
+  const oldName = patientInfo.name;
+  
+  // Update patientInfo object with current form values
+  patientInfo.responderId = document.getElementById('responder-id').value.trim();
+  patientInfo.incident = document.getElementById('incident-type').value;
+  patientInfo.name = newName;
+  patientInfo.age = document.getElementById('patient-age').value.trim();
+  patientInfo.allergies = document.getElementById('allergies').value.trim();
+  patientInfo.medication = document.getElementById('medication').value.trim();
+  patientInfo.history = document.getElementById('history').value.trim();
+  patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
+  patientInfo.signsSymptoms = document.getElementById('signs-symptoms').value.trim();
+  
+  // Save current patient data
+  if (currentPatientId) {
+    patients[currentPatientId] = {
+      info: {...patientInfo},
+      vitals: [...vitalsLog],
+      gcs: [...gcsLog],
+      notes: [...notesLog]
+    };
+    
+    saveToLocalStorage();
+    renderPatientList();
+    updateCurrentPatientDisplay();
+    updateAllTabPatientDisplays();
+  }
+}
+
+// Function to start a new scene
+function startNewScene() {
+  if (!confirm('Start a new scene? This will remove all patients and their data.')) return;
+  
+  // Clear all data
+  patients = {};
+  currentPatientId = null;
+  patientInfo = {
+    responderId: '',
+    incident: '',
+    name: '',
+    age: '',
+    allergies: '',
+    medication: '',
+    history: '',
+    lastIntake: '',
+    signsSymptoms: ''
+  };
+  vitalsLog = [];
+  gcsLog = [];
+  notesLog = [];
+  
+  // Create a new patient
+  addPatient();
+  
+  // Clear all UI elements
+  document.getElementById('results-output').value = '';
+  document.getElementById('audio-notes').innerHTML = '';
+  
+  // Update UI
+  renderVitalsLog();
+  renderGcsLog();
+  renderNotesLog();
+  renderPatientList();
+  renderVitalsChart();
+  renderAlertsToTabs();
+  updateCurrentPatientDisplay();
+  updateAllTabPatientDisplays();
+  
+  saveToLocalStorage();
 }
 
 /* Trend detection rules:
@@ -471,6 +969,9 @@ function renderVitalsLog() {
     if (item.capRefill) lines.push(`Cap Refill: ${item.capRefill} s`);
     if (item.pupilLeft || item.pupilRight) lines.push(`Pupils: L${item.pupilLeft || ''} R${item.pupilRight || ''}`);
     if (item.pain) lines.push(`Pain: ${item.pain}/10`);
+    if (item.ecg) lines.push(`ECG: ${item.ecg}`);
+    if (item.painLocation) lines.push(`Pain Location: ${item.painLocation}`);
+    if (item.skin) lines.push(`Skin: ${item.skin}`);
 
     const div = document.createElement('div');
     div.className = 'log-item';
@@ -503,6 +1004,39 @@ function renderNotesLog() {
   });
 }
 
+function renderVitalsChart() {
+  const container = document.getElementById('vitals-chart-container');
+  container.innerHTML = '';
+  
+  if (vitalsLog.length < 2) return;
+  
+  // Create BP trend chart
+  const chartContainer = document.createElement('div');
+  chartContainer.className = 'vitals-chart';
+  
+  const chartTitle = document.createElement('div');
+  chartTitle.className = 'chart-title';
+  chartTitle.textContent = 'BP Trend (Systolic)';
+  container.appendChild(chartTitle);
+  
+  const maxBP = Math.max(...vitalsLog.map(v => parseInt(v.bpSys) || 0));
+  const minBP = Math.min(...vitalsLog.map(v => parseInt(v.bpSys) || 0));
+  
+  // Show last 5 readings
+  vitalsLog.slice(0, 5).reverse().forEach((v, i) => {
+    const height = maxBP > minBP ? 
+      `${((parseInt(v.bpSys) - minBP) / (maxBP - minBP)) * 100}%` : '50%';
+    
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar';
+    bar.style.height = height;
+    bar.title = `${v.time}: ${v.bpSys}/${v.bpDia}`;
+    chartContainer.appendChild(bar);
+  });
+  
+  container.appendChild(chartContainer);
+}
+
 function renderAlertsToTabs() {
   const res = analyzeTrends();
   const severity = res.severity;
@@ -517,7 +1051,6 @@ function renderAlertsToTabs() {
   if (!severity) return; // no banner
 
   const message = res.issues.map(i=>i.text).slice(0,3).join(' • '); // top items
-  const bannerClass = severity === 'red' ? 'alert- red' : 'alert- amber'; // fallback below
   const className = (severity === 'red') ? 'alert-banner alert-red' : 'alert-banner alert-amber';
   [vitalsBanner,gcsBanner,resultsBanner].forEach(b=>{
     b.className = className;
@@ -531,13 +1064,14 @@ function renderAlertsToTabs() {
 function submitVitals() {
   // pull patient info (keep patientInfo up to date)
   patientInfo.responderId = document.getElementById('responder-id').value.trim();
-  patientInfo.incident = document.getElementById('incident-type').value.trim();
+  patientInfo.incident = document.getElementById('incident-type').value;
   patientInfo.name = document.getElementById('patient-name').value.trim();
   patientInfo.age = document.getElementById('patient-age').value.trim();
   patientInfo.allergies = document.getElementById('allergies').value.trim();
   patientInfo.medication = document.getElementById('medication').value.trim();
   patientInfo.history = document.getElementById('history').value.trim();
   patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
+  patientInfo.signsSymptoms = document.getElementById('signs-symptoms').value.trim();
 
   const item = {
     time: nowTimestamp(),
@@ -554,7 +1088,10 @@ function submitVitals() {
     capRefill: document.getElementById('cap-refill').value.trim(),
     pupilLeft: document.getElementById('pupil-left').value.trim(),
     pupilRight: document.getElementById('pupil-right').value.trim(),
-    pain: document.getElementById('pain').value.trim()
+    pain: document.getElementById('pain').value.trim(),
+    ecg: document.getElementById('ecg').value,
+    painLocation: document.getElementById('pain-location').value.trim(),
+    skin: document.getElementById('skin').value
   };
 
   // Prepend newest
@@ -562,15 +1099,18 @@ function submitVitals() {
   // Keep only reasonable history length (optional) - here keep last 100
   if (vitalsLog.length > 200) vitalsLog.length = 200;
 
+  saveToLocalStorage();
   renderVitalsLog();
+  renderVitalsChart();
   renderAlertsToTabs();
+  renderPatientList();
 
   // Clear vitals inputs to allow new reading
   clearVitalsInputs();
 }
 
 function clearVitalsInputs() {
-  ['bp-sys','bp-dia','pulse','spo2','on-o2','o2-flow','rrate','hgt','temp','cap-refill','pupil-left','pupil-right','pain'].forEach(id=>{
+  ['bp-sys','bp-dia','pulse','spo2','on-o2','o2-flow','rrate','hgt','temp','cap-refill','pupil-left','pupil-right','pain','ecg','pain-location','skin'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     if(el.type === 'checkbox') el.checked = false;
@@ -589,8 +1129,10 @@ function submitGCS() {
   if (gcsLog.length > 200) gcsLog.length = 200;
 
   document.getElementById('gcs-total').innerText = `Total GCS Score: ${total} / 15 (E${eye} V${verbal} M${motor})`;
+  saveToLocalStorage();
   renderGcsLog();
   renderAlertsToTabs();
+  renderPatientList();
 
   // Clear selection to allow new reading
   clearGCSInputs();
@@ -608,8 +1150,10 @@ function addNote() {
   if (!text) { alert('Add a note before hitting Add Note'); return; }
   notesLog.unshift({ time: nowTimestamp(), iso: formatDateTimeISO(), note: text });
   if (notesLog.length > 200) notesLog.length = 200;
+  saveToLocalStorage();
   renderNotesLog();
   document.getElementById('general-note').value = '';
+  renderPatientList();
 }
 
 /* -------------------------
@@ -618,81 +1162,148 @@ function addNote() {
 function generateResults() {
   // Ensure patient info up to date
   patientInfo.responderId = document.getElementById('responder-id').value.trim();
-  patientInfo.incident = document.getElementById('incident-type').value.trim();
+  patientInfo.incident = document.getElementById('incident-type').value;
   patientInfo.name = document.getElementById('patient-name').value.trim();
   patientInfo.age = document.getElementById('patient-age').value.trim();
   patientInfo.allergies = document.getElementById('allergies').value.trim();
   patientInfo.medication = document.getElementById('medication').value.trim();
   patientInfo.history = document.getElementById('history').value.trim();
   patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
+  patientInfo.signsSymptoms = document.getElementById('signs-symptoms').value.trim();
 
   // Update alerts in case user viewed Results
   renderAlertsToTabs();
 
   const showTS = document.getElementById('show-timestamps').checked;
-  let report = `--- PATIENT HANDOVER REPORT ---\n\n`;
-  const addLine = (label, value, unit='') => { if (value && String(value).trim() !== '') report += `${label.padEnd(15)}: ${value}${unit}\n`; };
+  const useSbarFormat = document.getElementById('sbar-format').checked;
+  
+  let report = '';
+  
+  if (useSbarFormat) {
+    report = `--- SBAR HANDOVER REPORT ---\n\n`;
+    
+    report += `SITUATION:\n`;
+    report += `${patientInfo.name || 'Unknown'}, ${patientInfo.age || 'Unknown'}y/o, ${patientInfo.incident || 'Unknown incident'}\n`;
+    report += `Responder: ${patientInfo.responderId || 'Unknown'}\n\n`;
+    
+    report += `BACKGROUND:\n`;
+    report += `Allergies: ${patientInfo.allergies || 'None known'}\n`;
+    report += `Medications: ${patientInfo.medication || 'None'}\n`;
+    report += `History: ${patientInfo.history || 'None'}\n\n`;
+    
+    report += `ASSESSMENT:\n`;
+    // Add vitals summary
+    if (vitalsLog.length > 0) {
+      const latest = vitalsLog[0];
+      report += `Latest vitals (${latest.time}):\n`;
+      if (latest.bpSys && latest.bpDia) report += `- BP: ${latest.bpSys}/${latest.bpDia} mmHg\n`;
+      if (latest.pulse) report += `- Pulse: ${latest.pulse} bpm\n`;
+      if (latest.spo2) report += `- SPO2: ${latest.spo2}%\n`;
+      if (latest.rrate) report += `- RR: ${latest.rrate}/min\n`;
+      if (latest.temp) report += `- Temp: ${latest.temp}°C\n`;
+      if (latest.ecg) report += `- ECG: ${latest.ecg}\n`;
+      if (latest.skin) report += `- Skin: ${latest.skin}\n`;
+    }
+    
+    // Add GCS
+    if (gcsLog.length > 0) {
+      report += `GCS: ${gcsLog[0].total}/15 (E${gcsLog[0].eye} V${gcsLog[0].verbal} M${gcsLog[0].motor})\n`;
+    }
+    
+    // Add alerts
+    const trend = analyzeTrends();
+    if (trend.issues.length) {
+      report += `\nCONCERNS:\n`;
+      trend.issues.forEach(i=>{ report += `- ${i.text}\n`; });
+    }
+    
+    report += `\nRECOMMENDATION:\n`;
+    report += `[Add your recommendation here]\n\n`;
+    
+    // Only include signs/symptoms if there's content
+    if (patientInfo.signsSymptoms) {
+      report += `--- SIGNS / SYMPTOMS ---\n\n`;
+      report += patientInfo.signsSymptoms + '\n\n';
+    }
+    
+    report += `--- ADDITIONAL NOTES ---\n\n`;
+    if (notesLog.length === 0) report += '(none)\n';
+    else {
+      notesLog.forEach(n=>{
+        report += `${n.time} - ${n.note}\n`;
+      });
+    }
+  } else {
+    // Use original format
+    report = `--- PATIENT HANDOVER REPORT ---\n\n`;
+    const addLine = (label, value, unit='') => { if (value && String(value).trim() !== '') report += `${label.padEnd(15)}: ${value}${unit}\n`; };
 
-  addLine('Responder ID', patientInfo.responderId);
-  addLine('Name', patientInfo.name);
-  addLine('Age', patientInfo.age);
-  addLine('Incident', patientInfo.incident);
-  addLine('Allergies', patientInfo.allergies);
-  addLine('Medication', patientInfo.medication);
-  addLine('Past History', patientInfo.history);
-  addLine('Last Intake', patientInfo.lastIntake);
+    addLine('Responder ID', patientInfo.responderId);
+    addLine('Name', patientInfo.name);
+    addLine('Age', patientInfo.age);
+    addLine('Incident', patientInfo.incident);
+    addLine('Allergies', patientInfo.allergies);
+    addLine('Medication', patientInfo.medication);
+    addLine('Past History', patientInfo.history);
+    addLine('Last Intake', patientInfo.lastIntake);
 
-  report += `\n--- VITALS ---\n\n`;
+    report += `\n--- VITALS ---\n\n`;
 
-  // For each vitals entry, output only fields that exist, keeping structure tidy.
-  // Show newest-first as in your example (we have newest-first in arrays)
-  if (vitalsLog.length === 0) report += 'No vitals recorded\n';
-  else {
-    // Iterate through vitalsLog in insertion order (newest-first)
-    vitalsLog.forEach(v=>{
-      if (v.bpSys && v.bpDia) {
-        report += `BP             : ${v.bpSys}/${v.bpDia} mmHg${ showTS ? ' ' + v.time : '' }\n`;
-      }
-      if (v.pulse) report += `Pulse          : ${v.pulse} bpm${ showTS ? ' ' + v.time : '' }\n`;
-      if (v.spo2) {
-        const o2txt = v.onO2 ? ` (On O₂ ${v.o2Flow || ''})` : '';
-        report += `SPO2           : ${v.spo2}%${o2txt}${ showTS ? ' ' + v.time : '' }\n`;
-      }
-      if (v.rrate) report += `Resp Rate      : ${v.rrate}/min${ showTS ? ' ' + v.time : '' }\n`;
-      if (v.temp) report += `Temperature    : ${v.temp} °C${ showTS ? ' ' + v.time : '' }\n`;
-      if (v.capRefill) report += `Cap Refill     : ${v.capRefill} s${ showTS ? ' ' + v.time : '' }\n`;
-      if (v.pupilLeft || v.pupilRight) report += `Pupils         : L${v.pupilLeft || ''} R${v.pupilRight || ''}${ showTS ? ' ' + v.time : '' }\n`;
-      if (v.pain) report += `Pain           : ${v.pain} /10${ showTS ? ' ' + v.time : '' }\n`;
-      // small spacer between entries for readability
-      report += '\n';
-    });
-  }
+    // For each vitals entry, output only fields that exist, keeping structure tidy.
+    // Show newest-first as in your example (we have newest-first in arrays)
+    if (vitalsLog.length === 0) report += 'No vitals recorded\n';
+    else {
+      // Iterate through vitalsLog in insertion order (newest-first)
+      vitalsLog.forEach(v=>{
+        if (v.bpSys && v.bpDia) {
+          report += `BP             : ${v.bpSys}/${v.bpDia} mmHg${ showTS ? ' ' + v.time : '' }\n`;
+        }
+        if (v.pulse) report += `Pulse          : ${v.pulse} bpm${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.spo2) {
+          const o2txt = v.onO2 ? ` (On O₂ ${v.o2Flow || ''})` : '';
+          report += `SPO2           : ${v.spo2}%${o2txt}${ showTS ? ' ' + v.time : '' }\n`;
+        }
+        if (v.rrate) report += `Resp Rate      : ${v.rrate}/min${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.temp) report += `Temperature    : ${v.temp} °C${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.capRefill) report += `Cap Refill     : ${v.capRefill} s${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.pupilLeft || v.pupilRight) report += `Pupils         : L${v.pupilLeft || ''} R${v.pupilRight || ''}${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.pain) report += `Pain           : ${v.pain} /10${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.ecg) report += `ECG            : ${v.ecg}${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.painLocation) report += `Pain Location  : ${v.painLocation}${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.skin) report += `Skin           : ${v.skin}${ showTS ? ' ' + v.time : '' }\n`;
+        // small spacer between entries for readability
+        report += '\n';
+      });
+    }
 
-  report += `\n--- GCS ---\n\n`;
-  if (gcsLog.length === 0) report += 'No GCS recorded\n\n';
-  else {
-    gcsLog.forEach(g=>{
-      report += `Total GCS Score: ${g.total} / 15 (E${g.eye} V${g.verbal} M${g.motor})${ showTS ? ' ' + g.time : '' }\n\n`;
-    });
-  }
+    report += `\n--- GCS ---\n\n`;
+    if (gcsLog.length === 0) report += 'No GCS recorded\n\n';
+    else {
+      gcsLog.forEach(g=>{
+        report += `Total GCS Score: ${g.total} / 15 (E${g.eye} V${g.verbal} M${g.motor})${ showTS ? ' ' + g.time : '' }\n\n`;
+      });
+    }
 
-  report += `--- SIGNS / SYMPTOMS ---\n\n`;
-  const signs = document.getElementById('signs-symptoms').value.trim();
-  report += (signs ? signs : '') + '\n\n';
+    // Only include signs/symptoms if there's content
+    if (patientInfo.signsSymptoms) {
+      report += `--- SIGNS / SYMPTOMS ---\n\n`;
+      report += patientInfo.signsSymptoms + '\n\n';
+    }
 
-  report += `--- ADDITIONAL NOTES ---\n\n`;
-  if (notesLog.length === 0) report += '(none)\n';
-  else {
-    notesLog.forEach(n=>{
-      report += `${ showTS ? n.time + ' - ' : '' }${n.note}\n`;
-    });
-  }
+    report += `--- ADDITIONAL NOTES ---\n\n`;
+    if (notesLog.length === 0) report += '(none)\n';
+    else {
+      notesLog.forEach(n=>{
+        report += `${ showTS ? n.time + ' - ' : '' }${n.note}\n`;
+      });
+    }
 
-  // Add alerts summary at end if present (so receivers see it in handover too)
-  const trend = analyzeTrends();
-  if (trend.issues.length) {
-    report += `\n--- ALERTS ---\n\n`;
-    trend.issues.forEach(i=>{ report += `${i.text}\n`; });
+    // Add alerts summary at end if present (so receivers see it in handover too)
+    const trend = analyzeTrends();
+    if (trend.issues.length) {
+      report += `\n--- ALERTS ---\n\n`;
+      trend.issues.forEach(i=>{ report += `${i.text}\n`; });
+    }
   }
 
   document.getElementById('results-output').value = report;
@@ -726,18 +1337,22 @@ function downloadReport() {
 /* -------------------------
    Small utilities
    ------------------------- */
-function clearNoteInput() { document.getElementById('general-note').value = ''; }
-function clearVitalsLog() { vitalsLog = []; renderVitalsLog(); renderAlertsToTabs(); }
+function clearNoteInput() { 
+  document.getElementById('general-note').value = ''; 
+  // Also clear audio notes
+  document.getElementById('audio-notes').innerHTML = '';
+  // Remove audio notes from notesLog
+  notesLog = notesLog.filter(note => !note.audioData);
+  saveToLocalStorage();
+  renderNotesLog();
+}
+function clearVitalsLog() { vitalsLog = []; renderVitalsLog(); renderVitalsChart(); renderAlertsToTabs(); }
 function clearGcsLog() { gcsLog = []; renderGcsLog(); renderAlertsToTabs(); }
-function clearNotesLog() { notesLog = []; renderNotesLog(); }
-function clearAll() {
-  if (!confirm('Start new patient? This will clear logs and fields.')) return;
-  // Clear patient fields
-  ['responder-id','incident-type','patient-name','patient-age','allergies','medication','history','last-intake'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
-  // Clear logs
-  vitalsLog=[]; gcsLog=[]; notesLog=[];
-  renderVitalsLog(); renderGcsLog(); renderNotesLog(); document.getElementById('results-output').value='';
-  renderAlertsToTabs();
+function clearNotesLog() { 
+  notesLog = []; 
+  renderNotesLog(); 
+  // Also clear audio notes
+  document.getElementById('audio-notes').innerHTML = '';
 }
 
 /* -------------------------
@@ -763,11 +1378,90 @@ document.addEventListener('change', function(e){
   }
 });
 
+// Audio recording functionality
+document.getElementById('record-note').addEventListener('click', function() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    this.textContent = "Record Audio Note";
+    this.classList.remove("btn-primary");
+    this.classList.add("btn-secondary");
+  } else {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+        
+        mediaRecorder.addEventListener("dataavailable", event => {
+          audioChunks.push(event.data);
+        });
+        
+        mediaRecorder.addEventListener("stop", () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
+          const audioContainer = document.getElementById('audio-notes');
+          const audioItem = document.createElement('div');
+          audioItem.className = 'log-item';
+          
+          const timestamp = nowTimestamp();
+          audioItem.innerHTML = `
+            <div><strong>${timestamp}</strong> - Audio Note</div>
+            <audio controls src="${audioUrl}"></audio>
+          `;
+          
+          audioContainer.insertBefore(audioItem, audioContainer.firstChild);
+          
+          // Save audio data
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = function() {
+            notesLog.unshift({ 
+              time: timestamp, 
+              iso: formatDateTimeISO(), 
+              note: "[Audio recording]",
+              audioData: reader.result
+            });
+            if (notesLog.length > 200) notesLog.length = 200;
+            saveToLocalStorage();
+            renderNotesLog();
+            renderPatientList();
+          };
+          
+          audioChunks = [];
+        });
+        
+        this.textContent = "Stop Recording";
+        this.classList.remove("btn-secondary");
+        this.classList.add("btn-primary");
+      })
+      .catch(err => {
+        console.error("Error accessing microphone:", err);
+        alert("Could not access microphone. Audio recording unavailable.");
+      });
+  }
+});
+
 /* initial render */
-renderVitalsLog();
-renderGcsLog();
-renderNotesLog();
-renderAlertsToTabs();
+document.addEventListener('DOMContentLoaded', function() {
+  loadFromLocalStorage();
+  
+  // If no current patient, create one
+  if (!currentPatientId || !patients[currentPatientId]) {
+    addPatient();
+  } else {
+    switchPatient(currentPatientId);
+  }
+  
+  renderVitalsLog();
+  renderGcsLog();
+  renderNotesLog();
+  renderAlertsToTabs();
+  renderVitalsChart();
+  renderPatientList();
+  updateCurrentPatientDisplay();
+  updateAllTabPatientDisplays();
+});
 
 </script>
 </body>
