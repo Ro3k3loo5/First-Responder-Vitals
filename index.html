@@ -179,7 +179,7 @@ body{
   font-weight: 600;
   color: var(--secondary-accent);
   display: flex;
-  align-items: center;
+  align-items:center;
   gap: 8px;
 }
 .tab-patient-header .patient-indicator {
@@ -216,9 +216,24 @@ body{
   font-size: 0.9rem;
 }
 
+/* Options group styling */
+.options-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.options-group .form-group {
+  margin-bottom: 0;
+  flex: 1;
+}
+
 @media (max-width:700px){
   .kv label{ min-width:90px; }
   .header{ flex-direction:column; align-items:flex-start; gap:6px; }
+  .options-group {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 </style>
 </head>
@@ -343,9 +358,25 @@ body{
       <div class="input-group">
         <input id="spo2" type="number" placeholder="e.g., 98">
         <span class="input-group-addon">%</span>
-        <input id="on-o2" type="checkbox" style="margin-left:8px">
-        <label for="on-o2" class="small" style="margin-left:4px">On O₂</label>
-        <input id="o2-flow" placeholder="L/min (optional)" style="width:110px; margin-left:8px;">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>O₂ Delivery</label>
+      <select id="o2-delivery">
+        <option value="">None</option>
+        <option value="nasal">Nasal Cannula</option>
+        <option value="mask">Face Mask</option>
+        <option value="non-rebreather">Non-rebreather Mask</option>
+        <option value="bag-valve">Bag-Valve Mask</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="o2-flow">O₂ Flow Rate</label>
+      <div class="input-group">
+        <input id="o2-flow" type="number" placeholder="e.g., 2" step="0.5">
+        <span class="input-group-addon">L/min</span>
       </div>
     </div>
 
@@ -544,13 +575,13 @@ body{
     <h2>Consolidated Results</h2>
     <div id="results-alert" class="alert-banner alert-none"></div>
 
-    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
-      <label class="toggle-row"><input type="checkbox" id="show-timestamps" checked> Show timestamps</label>
-      <div style="margin-left:auto;" class="small">Timestamps will be included in copied report when checked</div>
-    </div>
-
-    <div class="form-group">
-      <label class="toggle-row"><input type="checkbox" id="sbar-format"> Use SBAR format</label>
+    <div class="options-group">
+      <div class="form-group">
+        <label class="toggle-row"><input type="checkbox" id="show-timestamps" checked> Include timestamps</label>
+      </div>
+      <div class="form-group">
+        <label class="toggle-row"><input type="checkbox" id="sbar-format"> Use SBAR format</label>
+      </div>
     </div>
 
     <div class="form-group">
@@ -1081,7 +1112,7 @@ function renderVitalsLog() {
     if (item.pulse) lines.push(`Pulse: ${item.pulse} bpm`);
     if (item.spo2) {
       let s = `SPO₂: ${item.spo2}%`;
-      if (item.onO2) s += ` (On O₂ ${item.o2Flow || 'N/A'})`;
+      if (item.o2Delivery) s += ` (${item.o2Delivery})`;
       lines.push(s);
     }
     if (item.rrate) lines.push(`Resp Rate: ${item.rrate}/min`);
@@ -1200,7 +1231,7 @@ function submitVitals() {
     bpDia: document.getElementById('bp-dia').value.trim(),
     pulse: document.getElementById('pulse').value.trim(),
     spo2: document.getElementById('spo2').value.trim(),
-    onO2: document.getElementById('on-o2').checked,
+    o2Delivery: document.getElementById('o2-delivery').value,
     o2Flow: document.getElementById('o2-flow').value.trim(),
     rrate: document.getElementById('rrate').value.trim(),
     hgt: document.getElementById('hgt').value.trim(),
@@ -1230,7 +1261,7 @@ function submitVitals() {
 }
 
 function clearVitalsInputs() {
-  ['bp-sys','bp-dia','pulse','spo2','on-o2','o2-flow','rrate','hgt','temp','cap-refill','pupil-left','pupil-right','pain','ecg','pain-location','skin'].forEach(id=>{
+  ['bp-sys','bp-dia','pulse','spo2','o2-delivery','o2-flow','rrate','hgt','temp','cap-refill','pupil-left','pupil-right','pain','ecg','pain-location','skin'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     if(el.type === 'checkbox') el.checked = false;
@@ -1323,6 +1354,7 @@ function generateResults() {
       if (latest.temp) report += `- Temp: ${latest.temp}°C\n`;
       if (latest.ecg) report += `- ECG: ${latest.ecg}\n`;
       if (latest.skin) report += `- Skin: ${latest.skin}\n`;
+      if (latest.o2Delivery) report += `- O2: ${latest.o2Delivery} at ${latest.o2Flow || 'N/A'} L/min\n`;
     }
     
     // Add GCS
@@ -1380,8 +1412,7 @@ function generateResults() {
         }
         if (v.pulse) report += `Pulse          : ${v.pulse} bpm${ showTS ? ' ' + v.time : '' }\n`;
         if (v.spo2) {
-          const o2txt = v.onO2 ? ` (On O₂ ${v.o2Flow || ''})` : '';
-          report += `SPO2           : ${v.spo2}%${o2txt}${ showTS ? ' ' + v.time : '' }\n`;
+          report += `SPO2           : ${v.spo2}%${ showTS ? ' ' + v.time : '' }\n`;
         }
         if (v.rrate) report += `Resp Rate      : ${v.rrate}/min${ showTS ? ' ' + v.time : '' }\n`;
         if (v.temp) report += `Temperature    : ${v.temp} °C${ showTS ? ' ' + v.time : '' }\n`;
@@ -1391,6 +1422,7 @@ function generateResults() {
         if (v.ecg) report += `ECG            : ${v.ecg}${ showTS ? ' ' + v.time : '' }\n`;
         if (v.painLocation) report += `Pain Location  : ${v.painLocation}${ showTS ? ' ' + v.time : '' }\n`;
         if (v.skin) report += `Skin           : ${v.skin}${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.o2Delivery) report += `O2 Delivery    : ${v.o2Delivery} at ${v.o2Flow || 'N/A'} L/min${ showTS ? ' ' + v.time : '' }\n`;
         // small spacer between entries for readability
         report += '\n';
       });
