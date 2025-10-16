@@ -1,4 +1,4 @@
-const CACHE_NAME = 'start-vitals-v3'; // Incremented version number
+const CACHE_NAME = 'start-vitals-v3'; // Incremented version
 const urlsToCache = [
   '/',
   'index.html',
@@ -31,7 +31,14 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch event with network-first strategy for dynamic content
+// Listen for messages from the client
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Fetch event with network-first strategy
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
