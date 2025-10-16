@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ems-handover-cache-v3'; // increment version when updating
+const CACHE_NAME = 'ems-handover-cache-v4'; // bump this each update
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,18 +9,18 @@ const urlsToCache = [
   '/icons/icon-512.png'
 ];
 
-// Install event - cache all necessary files
+// Install event - cache app shell
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('[Service Worker] Caching app shell');
+      console.log('[Service Worker] Caching new version');
       return cache.addAll(urlsToCache);
     })
   );
-  self.skipWaiting(); // activate new SW immediately
+  self.skipWaiting(); // activate immediately
 });
 
-// Activate event - remove old caches
+// Activate event - delete old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames =>
@@ -37,15 +37,14 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, then update from network
+// Fetch event - serve from cache, update in background
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then(response => {
+    caches.match(event.request).then(cachedResponse => {
       const fetchPromise = fetch(event.request)
         .then(networkResponse => {
-          // Update cache in background
           if (networkResponse && networkResponse.status === 200) {
             caches.open(CACHE_NAME).then(cache =>
               cache.put(event.request, networkResponse.clone())
@@ -53,9 +52,22 @@ self.addEventListener('fetch', event => {
           }
           return networkResponse;
         })
-        .catch(() => response); // fallback to cache if offline
-
-      return response || fetchPromise;
+        .catch(() => cachedResponse); // fallback if offline
+      return cachedResponse || fetchPromise;
     })
+  );
+});
+
+// --- Auto refresh clients when new version is activated ---
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    (async () => {
+      const clientsList = await self.clients.matchAll({
+        includeUncontrolled: true,
+      });
+      for (const client of clientsList) {
+        client.navigate(client.url); // force reload open tabs
+      }
+    })()
   );
 });
