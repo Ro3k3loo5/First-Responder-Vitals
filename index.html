@@ -9,7 +9,15 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(()=>{/*sw failed*/});
+      navigator.serviceWorker.register('sw.js').then(registration => {
+        // Store registration for update checking
+        window.swRegistration = registration;
+        
+        // Check for updates periodically
+        setInterval(() => {
+          registration.update();
+        }, 60 * 60 * 1000); // Check every hour
+      }).catch(()=>{/*sw failed*/});
     });
   }
 </script>
@@ -79,6 +87,7 @@ body{
 .btn-primary{ background:var(--secondary-accent); color:#fff; }
 .btn-secondary{ background:#bdc3c7; color:#var(--text-color); }
 .btn-danger{ background:#e74c3c; color:#fff; }
+.btn-info{ background:#17a2b8; color:#fff; }
 .small{ font-size:0.9rem; color:#555; }
 #results-output{ white-space:pre-wrap; background:#ecf0f1; border:1px solid var(--border-color); padding:12px; border-radius:6px; min-height:180px; font-family:"Courier New", monospace; }
 .kv { display:flex; gap:10px; align-items:center; margin-bottom:8px; }
@@ -90,6 +99,7 @@ body{
 .alert-none{ display:none; }
 .alert-amber{ background:var(--warn-amber); }
 .alert-red{ background:var(--warn-red); }
+.alert-info{ background:#17a2b8; }
 .log-list{ border:1px dashed var(--border-color); padding:8px; border-radius:6px; max-height:200px; overflow:auto; background:#fff; }
 .log-item{ padding:6px 8px; border-bottom:1px solid #f1f1f1; font-size:0.95rem; }
 .meta{ font-size:0.85rem; color:#666; }
@@ -180,6 +190,32 @@ body{
   border-radius: 10px;
 }
 
+/* Update notification styles */
+.update-notification {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: var(--primary-accent);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  max-width: 300px;
+}
+.update-notification .update-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+.update-notification .update-actions button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
 @media (max-width:700px){
   .kv label{ min-width:90px; }
   .header{ flex-direction:column; align-items:flex-start; gap:6px; }
@@ -191,7 +227,9 @@ body{
   <div class="header">
     <div class="app-title">Start Vitals</div>
     <div class="meta">Offline-ready • Lightweight</div>
-    <div class="controls">Responder ID & incident will be included in reports</div>
+    <div class="controls">
+      <button class="btn btn-info small-btn" onclick="checkForUpdates()">Check for Updates</button>
+    </div>
   </div>
 
   <div class="tab-nav" role="tablist">
@@ -533,6 +571,15 @@ body{
 
 </div>
 
+<!-- Update notification (hidden by default) -->
+<div id="update-notification" class="update-notification" style="display: none;">
+  <div>A new version of the app is available!</div>
+  <div class="update-actions">
+    <button onclick="applyUpdate()">Update Now</button>
+    <button onclick="dismissUpdate()">Later</button>
+  </div>
+</div>
+
 <script>
 /* -------------------------
    In-memory data structures
@@ -560,6 +607,79 @@ let patients = {}; // Object to store multiple patients
 // Audio recording
 let mediaRecorder;
 let audioChunks = [];
+
+/* -------------------------
+   Update management
+   ------------------------- */
+let updateAvailable = false;
+
+function checkForUpdates() {
+  if (!window.swRegistration) {
+    alert('Service worker not available. Please refresh the page.');
+    return;
+  }
+  
+  window.swRegistration.update().then(() => {
+    // The updatefound event will handle showing the notification
+    setTimeout(() => {
+      if (!updateAvailable) {
+        showNotification('No updates available. You have the latest version.', 'info');
+      }
+    }, 1000);
+  });
+}
+
+// Listen for service worker updates
+navigator.serviceWorker.addEventListener('controllerchange', () => {
+  // When the new service worker takes control, reload the page
+  window.location.reload();
+});
+
+navigator.serviceWorker.addEventListener('message', event => {
+  if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
+    showUpdateNotification();
+  }
+});
+
+function showUpdateNotification() {
+  updateAvailable = true;
+  document.getElementById('update-notification').style.display = 'block';
+}
+
+function applyUpdate() {
+  if (window.swRegistration && window.swRegistration.waiting) {
+    // Tell the waiting service worker to skip waiting
+    window.swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  } else {
+    // Fallback: just reload the page
+    window.location.reload();
+  }
+}
+
+function dismissUpdate() {
+  document.getElementById('update-notification').style.display = 'none';
+}
+
+function showNotification(message, type = 'info') {
+  // Create a temporary notification
+  const notification = document.createElement('div');
+  notification.className = `alert-banner alert-${type}`;
+  notification.textContent = message;
+  notification.style.position = 'fixed';
+  notification.style.top = '10px';
+  notification.style.left = '50%';
+  notification.style.transform = 'translateX(-50%)';
+  notification.style.zIndex = '1000';
+  
+  document.body.appendChild(notification);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.parentNode.removeChild(notification);
+    }
+  }, 3000);
+}
 
 /* -------------------------
    Utility helpers
