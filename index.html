@@ -32,6 +32,9 @@
   --warn-amber:#f39c12;
   --warn-red:#e74c3c;
   --font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --normal-green:#27ae60;
+  --abnormal-orange:#e67e22;
+  --critical-red:#c0392b;
 }
 *{box-sizing:border-box}
 body{
@@ -63,7 +66,7 @@ body{
   gap:12px;
 }
 .app-title { font-weight:700; font-size:1.1rem; color:var(--primary-accent); }
-.controls { margin-left:auto; font-size:0.9rem; color:#666; padding-right:10px; }
+.controls { margin-left:auto; font-size:0.9rem; color:#666; display:flex; gap:8px; align-items:center; }
 .tab-nav{ display:flex; background:#ecf0f1; border-bottom:1px solid var(--border-color); overflow-x:auto;}
 .tab-button{
   padding:12px 16px; border:none; background:transparent; cursor:pointer;
@@ -76,6 +79,7 @@ body{
 .form-group label{ display:block; font-weight:600; margin-bottom:8px; }
 .form-group input, .form-group textarea, .form-group select{
   width:100%; padding:10px; border:1px solid var(--border-color); border-radius:4px; font-size:1rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 .input-group{ display:flex; gap:10px; align-items:center; }
 .input-group input{ flex:1; }
@@ -88,6 +92,7 @@ body{
 .btn-secondary{ background:#bdc3c7; color:#var(--text-color); }
 .btn-danger{ background:#e74c3c; color:#fff; }
 .btn-info{ background:#17a2b8; color:#fff; }
+.btn-results { background: #9b59b6; color: white; }
 .small{ font-size:0.9rem; color:#555; }
 #results-output{ white-space:pre-wrap; background:#ecf0f1; border:1px solid var(--border-color); padding:12px; border-radius:6px; min-height:180px; font-family:"Courier New", monospace; }
 .kv { display:flex; gap:10px; align-items:center; margin-bottom:8px; }
@@ -227,12 +232,319 @@ body{
   flex: 1;
 }
 
+/* Priority indicator styles */
+.priority-indicator {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-left: 8px;
+}
+.priority-p1 { background: #e74c3c; color: white; }
+.priority-p2 { background: #f39c12; color: white; }
+.priority-p3 { background: #3498db; color: white; }
+.priority-p4 { background: #95a5a6; color: white; }
+
+/* Color-coded vital indicators */
+.vital-normal {
+  border-color: var(--normal-green) !important;
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2) !important;
+}
+.vital-abnormal {
+  border-color: var(--abnormal-orange) !important;
+  box-shadow: 0 0 0 2px rgba(230, 126, 34, 0.2) !important;
+}
+.vital-critical {
+  border-color: var(--critical-red) !important;
+  box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.3) !important;
+}
+
+/* Color indicators in log display */
+.vital-value-normal { color: var(--normal-green); font-weight: 600; }
+.vital-value-abnormal { color: var(--abnormal-orange); font-weight: 600; }
+.vital-value-critical { color: var(--critical-red); font-weight: 700; }
+
+/* Info icon and modal styles */
+.info-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-color: var(--primary-accent);
+  color: white;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 16px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-left: 6px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.info-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.info-modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+.info-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #777;
+  cursor: pointer;
+}
+
+.info-modal-close:hover {
+  color: #333;
+}
+
+.vital-range-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.vital-range-table th, .vital-range-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.vital-range-table th {
+  background-color: #f2f2f2;
+}
+
+.range-normal { color: var(--normal-green); font-weight: 600; }
+.range-abnormal { color: var(--abnormal-orange); font-weight: 600; }
+.range-critical { color: var(--critical-red); font-weight: 700; }
+
+/* Results modal styles */
+.results-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.results-modal-content {
+  background-color: #fff;
+  margin: 2% auto;
+  padding: 0;
+  border-radius: 8px;
+  width: 95%;
+  max-width: 900px;
+  max-height: 95vh;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.results-modal-header {
+  background: var(--primary-accent);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.results-modal-close {
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.results-modal-close:hover {
+  opacity: 0.8;
+}
+
+.results-modal-body {
+  padding: 20px;
+  max-height: calc(95vh - 60px);
+  overflow-y: auto;
+}
+
+/* Three-dot menu styles */
+.menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.menu-button:hover {
+  background-color: rgba(0,0,0,0.1);
+}
+
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background-color: white;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1001;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+
+.menu-dropdown a {
+  color: var(--text-color);
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.menu-dropdown a:hover {
+  background-color: #f1f1f1;
+}
+
+.menu-dropdown a:first-child {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.menu-dropdown a:last-child {
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.show { display: block; }
+
+/* Pupils input group styling */
+.pupils-input-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pupils-input-group input {
+  flex: 1;
+  min-width: 80px;
+}
+.pupils-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pupils-checkbox input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+.pupils-checkbox label {
+  font-weight: normal;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+/* GCS Info Section Styles */
+.gcs-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gcs-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.gcs-total-info {
+  margin-top: 20px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid var(--primary-accent);
+}
+
+.gcs-total-info h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: var(--primary-accent);
+}
+
+.gcs-total-info p {
+  margin-bottom: 6px;
+}
+
+.gcs-total-info ul {
+  margin-top: 8px;
+  margin-bottom: 0;
+  padding-left: 20px;
+}
+
+.gcs-total-info li {
+  margin-bottom: 4px;
+}
+
 @media (max-width:700px){
   .kv label{ min-width:90px; }
   .header{ flex-direction:column; align-items:flex-start; gap:6px; }
+  .controls { flex-direction: column; align-items: flex-start; margin-left: 0; margin-top: 8px; width: 100%; }
+  .controls .menu-container { align-self: flex-end; }
   .options-group {
     flex-direction: column;
     gap: 8px;
+  }
+  .info-modal-content {
+    width: 95%;
+    margin: 5% auto;
+  }
+  .results-modal-content {
+    width: 98%;
+    margin: 1% auto;
+  }
+  .pupils-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pupils-checkbox {
+    margin-top: 6px;
   }
 }
 </style>
@@ -241,9 +553,14 @@ body{
 <div class="container">
   <div class="header">
     <div class="app-title">Start Vitals</div>
-    <div class="meta">Offline-ready • Lightweight</div>
     <div class="controls">
-      <button class="btn btn-info small-btn" onclick="checkForUpdates()">Check for Updates</button>
+      <button class="btn btn-results" onclick="showResults()">Results</button>
+      <div class="menu-container">
+        <button class="menu-button" onclick="toggleMenu()">⋮</button>
+        <div id="menu-dropdown" class="menu-dropdown">
+          <a href="#" onclick="checkForUpdates(); toggleMenu(); return false;">Check for Updates</a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -252,7 +569,6 @@ body{
     <button class="tab-button" onclick="openTab(event,'vitals')">Vitals</button>
     <button class="tab-button" onclick="openTab(event,'gcs')">GCS</button>
     <button class="tab-button" onclick="openTab(event,'notes')">Notes</button>
-    <button class="tab-button" onclick="openTab(event,'results')">Results</button>
   </div>
 
   <!-- PATIENT INFO -->
@@ -274,6 +590,10 @@ body{
       </div>
     </div>
 
+    <div class="form-group">
+      <label for="patient-name">Name</label>
+      <input id="patient-name" placeholder="e.g., John Doe" onchange="patientNameChanged()">
+    </div>
     <div class="form-group">
       <label for="responder-id">Responder ID</label>
       <input id="responder-id" placeholder="e.g., ST186" onchange="patientInfoChanged()">
@@ -298,10 +618,6 @@ body{
         <option value="Obstetric Emergency">Obstetric Emergency</option>
         <option value="Other">Other</option>
       </select>
-    </div>
-    <div class="form-group">
-      <label for="patient-name">Name</label>
-      <input id="patient-name" placeholder="e.g., John Doe" onchange="patientNameChanged()">
     </div>
     <div class="form-group">
       <label for="patient-age">Age</label>
@@ -335,34 +651,46 @@ body{
     <h2>Vitals</h2>
     <div id="vitals-alert" class="alert-banner alert-none"></div>
 
+    <!-- Patient Priority -->
     <div class="form-group">
-      <label>Blood Pressure (mmHg)</label>
+      <label for="patient-priority">Patient Priority</label>
+      <select id="patient-priority" onchange="patientPriorityChanged()">
+        <option value="">Select priority</option>
+        <option value="P1">P1 - Immediate (Critical/Urgent)</option>
+        <option value="P2">P2 - Urgent (Serious)</option>
+        <option value="P3">P3 - Delayed (Walking Wounded)</option>
+        <option value="P4">P4 - Deceased</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Blood Pressure (mmHg)<span class="info-icon" onclick="showVitalInfo('bp')">?</span></label>
       <div class="input-group">
-        <input id="bp-sys" type="number" placeholder="Systolic">
+        <input id="bp-sys" type="number" placeholder="Systolic" oninput="updateVitalIndicator(this, 'bp-sys')">
         <span>/</span>
-        <input id="bp-dia" type="number" placeholder="Diastolic">
+        <input id="bp-dia" type="number" placeholder="Diastolic" oninput="updateVitalIndicator(this, 'bp-dia')">
         <span class="input-group-addon">mmHg</span>
       </div>
     </div>
 
     <div class="form-group">
-      <label for="pulse">Pulse</label>
+      <label for="pulse">Pulse<span class="info-icon" onclick="showVitalInfo('pulse')">?</span></label>
       <div class="input-group">
-        <input id="pulse" type="number" placeholder="e.g., 80">
+        <input id="pulse" type="number" placeholder="e.g., 80" oninput="updateVitalIndicator(this, 'pulse')">
         <span class="input-group-addon">bpm</span>
       </div>
     </div>
 
     <div class="form-group">
-      <label for="spo2">SPO₂</label>
+      <label for="spo2">SPO₂<span class="info-icon" onclick="showVitalInfo('spo2')">?</span></label>
       <div class="input-group">
-        <input id="spo2" type="number" placeholder="e.g., 98">
+        <input id="spo2" type="number" placeholder="e.g., 98" oninput="updateVitalIndicator(this, 'spo2')">
         <span class="input-group-addon">%</span>
       </div>
     </div>
 
     <div class="form-group">
-      <label>O₂ Delivery</label>
+      <label>O₂ Delivery<span class="info-icon" onclick="showVitalInfo('o2')">?</span></label>
       <select id="o2-delivery">
         <option value="">None</option>
         <option value="nasal">Nasal Cannula</option>
@@ -373,7 +701,7 @@ body{
     </div>
 
     <div class="form-group">
-      <label for="o2-flow">O₂ Flow Rate</label>
+      <label for="o2-flow">O₂ Flow Rate<span class="info-icon" onclick="showVitalInfo('o2-flow')">?</span></label>
       <div class="input-group">
         <input id="o2-flow" type="number" placeholder="e.g., 2" step="0.5">
         <span class="input-group-addon">L/min</span>
@@ -381,57 +709,61 @@ body{
     </div>
 
     <div class="form-group">
-      <label for="rrate">Respiratory Rate</label>
+      <label for="rrate">Respiratory Rate<span class="info-icon" onclick="showVitalInfo('rrate')">?</span></label>
       <div class="input-group">
-        <input id="rrate" type="number" placeholder="e.g., 16">
+        <input id="rrate" type="number" placeholder="e.g., 16" oninput="updateVitalIndicator(this, 'rrate')">
         <span class="input-group-addon">/min</span>
       </div>
     </div>
 
     <div class="form-group">
-      <label for="hgt">Blood Glucose (HGT)</label>
+      <label for="hgt">Blood Glucose (HGT)<span class="info-icon" onclick="showVitalInfo('hgt')">?</span></label>
       <div class="input-group">
-        <input id="hgt" type="number" step="0.1" placeholder="e.g., 5.5">
+        <input id="hgt" type="number" step="0.1" placeholder="e.g., 5.5" oninput="updateVitalIndicator(this, 'hgt')">
         <span class="input-group-addon">mmol/L</span>
       </div>
     </div>
 
     <div class="form-group">
-      <label for="temp">Temperature</label>
+      <label for="temp">Temperature<span class="info-icon" onclick="showVitalInfo('temp')">?</span></label>
       <div class="input-group">
-        <input id="temp" type="number" step="0.1" placeholder="e.g., 36.8">
+        <input id="temp" type="number" step="0.1" placeholder="e.g., 36.8" oninput="updateVitalIndicator(this, 'temp')">
         <span class="input-group-addon">°C</span>
       </div>
     </div>
 
     <div class="form-group">
-      <label for="cap-refill">Capillary Refill</label>
+      <label for="cap-refill">Capillary Refill<span class="info-icon" onclick="showVitalInfo('cap-refill')">?</span></label>
       <div class="input-group">
-        <input id="cap-refill" type="number" placeholder="e.g., 2">
+        <input id="cap-refill" type="number" placeholder="e.g., 2" oninput="updateVitalIndicator(this, 'cap-refill')">
         <span class="input-group-addon">s</span>
       </div>
     </div>
 
     <div class="form-group">
-      <label>Pupils (Left / Right)</label>
-      <div class="input-group">
+      <label>Pupils (Left / Right)<span class="info-icon" onclick="showVitalInfo('pupils')">?</span></label>
+      <div class="pupils-input-group">
         <input id="pupil-left" type="number" placeholder="L mm">
         <input id="pupil-right" type="number" placeholder="R mm">
         <span class="input-group-addon">mm</span>
       </div>
+      <div class="pupils-checkbox">
+        <input type="checkbox" id="pupils-reactive" onchange="patientInfoChanged()">
+        <label for="pupils-reactive">Pupils reactive to light</label>
+      </div>
     </div>
 
     <div class="form-group">
-      <label for="pain">Pain Score</label>
+      <label for="pain">Pain Score<span class="info-icon" onclick="showVitalInfo('pain')">?</span></label>
       <div class="input-group">
-        <input id="pain" type="number" min="0" max="10" placeholder="e.g., 7">
+        <input id="pain" type="number" min="0" max="10" placeholder="e.g., 7" oninput="updateVitalIndicator(this, 'pain')">
         <span class="input-group-addon">/10</span>
       </div>
     </div>
 
     <!-- New fields -->
     <div class="form-group">
-      <label for="ecg">ECG Rhythm</label>
+      <label for="ecg">ECG Rhythm<span class="info-icon" onclick="showVitalInfo('ecg')">?</span></label>
       <select id="ecg">
         <option value="">Select rhythm</option>
         <option value="sinus">Sinus</option>
@@ -446,12 +778,12 @@ body{
     </div>
 
     <div class="form-group">
-      <label for="pain-location">Pain Location</label>
+      <label for="pain-location">Pain Location<span class="info-icon" onclick="showVitalInfo('pain-location')">?</span></label>
       <input id="pain-location" placeholder="e.g., Chest, Left arm">
     </div>
 
     <div class="form-group">
-      <label for="skin">Skin Condition</label>
+      <label for="skin">Skin Condition<span class="info-icon" onclick="showVitalInfo('skin')">?</span></label>
       <select id="skin">
         <option value="">Select condition</option>
         <option value="normal">Normal</option>
@@ -489,7 +821,9 @@ body{
     <div id="gcs-alert" class="alert-banner alert-none"></div>
 
     <div class="gcs-section">
-      <h3>Eye Opening Response</h3>
+      <div class="gcs-info-header">
+        <h3 class="gcs-section-title">Eye Opening Response<span class="info-icon" onclick="showVitalInfo('gcs-eye')">?</span></h3>
+      </div>
       <label class="gcs-option"><input type="radio" name="gcs-eye" value="4"> Spontaneous (4)</label>
       <label class="gcs-option"><input type="radio" name="gcs-eye" value="3"> To Speech (3)</label>
       <label class="gcs-option"><input type="radio" name="gcs-eye" value="2"> To Pain (2)</label>
@@ -497,7 +831,9 @@ body{
     </div>
 
     <div class="gcs-section">
-      <h3>Verbal Response</h3>
+      <div class="gcs-info-header">
+        <h3 class="gcs-section-title">Verbal Response<span class="info-icon" onclick="showVitalInfo('gcs-verbal')">?</span></h3>
+      </div>
       <label class="gcs-option"><input type="radio" name="gcs-verbal" value="5"> Orientated (5)</label>
       <label class="gcs-option"><input type="radio" name="gcs-verbal" value="4"> Confused (4)</label>
       <label class="gcs-option"><input type="radio" name="gcs-verbal" value="3"> Inappropriate Words (3)</label>
@@ -506,7 +842,9 @@ body{
     </div>
 
     <div class="gcs-section">
-      <h3>Motor Response</h3>
+      <div class="gcs-info-header">
+        <h3 class="gcs-section-title">Motor Response<span class="info-icon" onclick="showVitalInfo('gcs-motor')">?</span></h3>
+      </div>
       <label class="gcs-option"><input type="radio" name="gcs-motor" value="6"> Obeys Commands (6)</label>
       <label class="gcs-option"><input type="radio" name="gcs-motor" value="5"> Localises to Pain (5)</label>
       <label class="gcs-option"><input type="radio" name="gcs-motor" value="4"> Withdraws from Pain (4)</label>
@@ -516,6 +854,18 @@ body{
     </div>
 
     <div id="gcs-total" class="meta">Total GCS Score: 0 / 15</div>
+    
+    <div class="gcs-total-info">
+      <h4>GCS Score Interpretation<span class="info-icon" onclick="showVitalInfo('gcs-total')">?</span></h4>
+      <p>The Glasgow Coma Scale provides a standardized way to assess a patient's level of consciousness:</p>
+      <ul>
+        <li><strong>13-15:</strong> Mild brain injury</li>
+        <li><strong>9-12:</strong> Moderate brain injury</li>
+        <li><strong>3-8:</strong> Severe brain injury</li>
+        <li><strong>3:</strong> Deep coma or brain death</li>
+      </ul>
+      <p>Score of 8 or less typically indicates the need for airway protection.</p>
+    </div>
 
     <div style="display:flex; gap:8px; align-items:center; margin-top:12px; margin-bottom:12px;">
       <button class="btn btn-primary" onclick="submitGCS()">Submit GCS</button>
@@ -565,41 +915,6 @@ body{
     </div>
   </div>
 
-  <!-- RESULTS -->
-  <div id="results" class="tab-content">
-    <div class="tab-patient-header">
-      <span class="patient-indicator">CURRENT PATIENT</span>
-      <span id="results-current">New Patient</span>
-    </div>
-    
-    <h2>Consolidated Results</h2>
-    <div id="results-alert" class="alert-banner alert-none"></div>
-
-    <div class="options-group">
-      <div class="form-group">
-        <label class="toggle-row"><input type="checkbox" id="show-timestamps" checked> Include timestamps</label>
-      </div>
-      <div class="form-group">
-        <label class="toggle-row"><input type="checkbox" id="sbar-format"> Use SBAR format</label>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <button class="btn btn-primary" onclick="generateResults()">Generate Handover Report</button>
-      <button class="btn btn-danger" style="margin-left:8px" onclick="startNewScene()">Start New Scene</button>
-    </div>
-
-    <div class="form-group">
-      <label for="results-output">Copy the text below:</label>
-      <textarea id="results-output" readonly></textarea>
-    </div>
-
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-secondary" onclick="copyResults()">Copy to Clipboard</button>
-      <button class="btn ghost small-btn" onclick="downloadReport()">Download .txt</button>
-    </div>
-  </div>
-
 </div>
 
 <!-- Update notification (hidden by default) -->
@@ -608,6 +923,52 @@ body{
   <div class="update-actions">
     <button onclick="applyUpdate()">Update Now</button>
     <button onclick="dismissUpdate()">Later</button>
+  </div>
+</div>
+
+<!-- Vital Info Modal -->
+<div id="vital-info-modal" class="info-modal">
+  <div class="info-modal-content">
+    <span class="info-modal-close" onclick="closeVitalInfo()">&times;</span>
+    <h3 id="vital-info-title">Vital Information</h3>
+    <div id="vital-info-content"></div>
+  </div>
+</div>
+
+<!-- Results Modal -->
+<div id="results-modal" class="results-modal">
+  <div class="results-modal-content">
+    <div class="results-modal-header">
+      <h2>Consolidated Results</h2>
+      <button class="results-modal-close" onclick="closeResults()">&times;</button>
+    </div>
+    <div class="results-modal-body">
+      <div id="results-alert" class="alert-banner alert-none"></div>
+
+      <div class="options-group">
+        <div class="form-group">
+          <label class="toggle-row"><input type="checkbox" id="show-timestamps" checked> Include timestamps</label>
+        </div>
+        <div class="form-group">
+          <label class="toggle-row"><input type="checkbox" id="sbar-format"> Use SBAR format</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <button class="btn btn-primary" onclick="generateResults()">Generate Handover Results</button>
+        <button class="btn btn-danger" style="margin-left:8px" onclick="startNewScene()">Start New Scene</button>
+      </div>
+
+      <div class="form-group">
+        <label for="results-output">Copy the text below:</label>
+        <textarea id="results-output" readonly></textarea>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary" onclick="copyResults()">Copy to Clipboard</button>
+        <button class="btn ghost small-btn" onclick="downloadReport()">Download .txt</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -624,7 +985,9 @@ let patientInfo = {
   medication: '',
   history: '',
   lastIntake: '',
-  signsSymptoms: ''
+  signsSymptoms: '',
+  priority: '',
+  pupilsReactive: false
 };
 
 let vitalsLog = []; // newest first
@@ -713,6 +1076,26 @@ function showNotification(message, type = 'info') {
 }
 
 /* -------------------------
+   Menu functions
+   ------------------------- */
+function toggleMenu() {
+  document.getElementById("menu-dropdown").classList.toggle("show");
+}
+
+// Close the dropdown menu if the user clicks outside of it
+window.onclick = function(event) {
+  if (!event.target.matches('.menu-button')) {
+    const dropdowns = document.getElementsByClassName("menu-dropdown");
+    for (let i = 0; i < dropdowns.length; i++) {
+      const openDropdown = dropdowns[i];
+      if (openDropdown.classList.contains('show')) {
+        openDropdown.classList.remove('show');
+      }
+    }
+  }
+}
+
+/* -------------------------
    Utility helpers
    ------------------------- */
 function nowTimestamp() {
@@ -781,7 +1164,9 @@ function addPatient() {
       medication: '',
       history: '',
       lastIntake: '',
-      signsSymptoms: ''
+      signsSymptoms: '',
+      priority: '',
+      pupilsReactive: false
     },
     vitals: [],
     gcs: [],
@@ -887,11 +1272,19 @@ function renderPatientList() {
   namedPatients.forEach(id => {
     const patient = patients[id];
     const displayName = patient.info.name;
+    const priority = patient.info.priority;
     
     const chip = document.createElement('div');
     chip.className = `patient-chip ${id === currentPatientId ? 'active' : ''}`;
+    
+    let priorityIndicator = '';
+    if (priority) {
+      priorityIndicator = `<span class="priority-indicator priority-${priority.toLowerCase()}">${priority}</span>`;
+    }
+    
     chip.innerHTML = `
       ${displayName}
+      ${priorityIndicator}
       <span class="remove" onclick="event.stopPropagation(); removePatient('${id}')">×</span>
     `;
     chip.onclick = () => {
@@ -920,7 +1313,6 @@ function updateAllTabPatientDisplays() {
   document.getElementById('vitals-current').textContent = patientName;
   document.getElementById('gcs-current').textContent = patientName;
   document.getElementById('notes-current').textContent = patientName;
-  document.getElementById('results-current').textContent = patientName;
 }
 
 function updatePatientInfoFields() {
@@ -933,6 +1325,8 @@ function updatePatientInfoFields() {
   document.getElementById('history').value = patientInfo.history;
   document.getElementById('last-intake').value = patientInfo.lastIntake;
   document.getElementById('signs-symptoms').value = patientInfo.signsSymptoms || '';
+  document.getElementById('patient-priority').value = patientInfo.priority || '';
+  document.getElementById('pupils-reactive').checked = patientInfo.pupilsReactive || false;
 }
 
 // New function to handle patient info changes
@@ -946,6 +1340,7 @@ function patientInfoChanged() {
   patientInfo.history = document.getElementById('history').value.trim();
   patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
   patientInfo.signsSymptoms = document.getElementById('signs-symptoms').value.trim();
+  patientInfo.pupilsReactive = document.getElementById('pupils-reactive').checked;
   
   // Save current patient data
   if (currentPatientId) {
@@ -975,6 +1370,7 @@ function patientNameChanged() {
   patientInfo.history = document.getElementById('history').value.trim();
   patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
   patientInfo.signsSymptoms = document.getElementById('signs-symptoms').value.trim();
+  patientInfo.pupilsReactive = document.getElementById('pupils-reactive').checked;
   
   // Save current patient data
   if (currentPatientId) {
@@ -989,6 +1385,27 @@ function patientNameChanged() {
     renderPatientList();
     updateCurrentPatientDisplay();
     updateAllTabPatientDisplays();
+  }
+}
+
+// Function to handle patient priority changes
+function patientPriorityChanged() {
+  const newPriority = document.getElementById('patient-priority').value;
+  
+  // Update patientInfo object
+  patientInfo.priority = newPriority;
+  
+  // Save current patient data
+  if (currentPatientId) {
+    patients[currentPatientId] = {
+      info: {...patientInfo},
+      vitals: [...vitalsLog],
+      gcs: [...gcsLog],
+      notes: [...notesLog]
+    };
+    
+    saveToLocalStorage();
+    renderPatientList();
   }
 }
 
@@ -1008,7 +1425,9 @@ function startNewScene() {
     medication: '',
     history: '',
     lastIntake: '',
-    signsSymptoms: ''
+    signsSymptoms: '',
+    priority: '',
+    pupilsReactive: false
   };
   vitalsLog = [];
   gcsLog = [];
@@ -1032,6 +1451,555 @@ function startNewScene() {
   updateAllTabPatientDisplays();
   
   saveToLocalStorage();
+}
+
+/* -------------------------
+   VITAL ASSESSMENT FUNCTIONS
+   ------------------------- */
+function assessVital(value, vitalType) {
+  const num = parseFloat(value);
+  if (isNaN(num)) return 'normal';
+  
+  switch(vitalType) {
+    case 'bp-sys':
+      if (num < 90 || num > 200) return 'critical';
+      if (num >= 90 && num <= 100) return 'abnormal';
+      if (num >= 160 && num <= 200) return 'abnormal';
+      return 'normal';
+      
+    case 'bp-dia':
+      if (num < 60 || num > 120) return 'critical';
+      if (num >= 60 && num <= 70) return 'abnormal';
+      if (num >= 100 && num <= 120) return 'abnormal';
+      return 'normal';
+      
+    case 'pulse':
+      if (num < 40 || num > 130) return 'critical';
+      if (num >= 40 && num <= 50) return 'abnormal';
+      if (num >= 100 && num <= 130) return 'abnormal';
+      return 'normal';
+      
+    case 'spo2':
+      if (num < 90) return 'critical';
+      if (num >= 90 && num <= 94) return 'abnormal';
+      return 'normal';
+      
+    case 'rrate':
+      if (num < 8 || num > 30) return 'critical';
+      if (num >= 8 && num <= 12) return 'abnormal';
+      if (num >= 25 && num <= 30) return 'abnormal';
+      return 'normal';
+      
+    case 'hgt':
+      if (num < 2.5 || num > 20) return 'critical';
+      if (num >= 2.5 && num <= 4) return 'abnormal';
+      if (num >= 15 && num <= 20) return 'abnormal';
+      return 'normal';
+      
+    case 'temp':
+      if (num < 35 || num > 39) return 'critical';
+      if (num >= 35 && num <= 36) return 'abnormal';
+      if (num >= 38 && num <= 39) return 'abnormal';
+      return 'normal';
+      
+    case 'cap-refill':
+      if (num > 3) return 'critical';
+      if (num >= 2 && num <= 3) return 'abnormal';
+      return 'normal';
+      
+    case 'pain':
+      if (num >= 8) return 'critical';
+      if (num >= 5 && num <= 7) return 'abnormal';
+      return 'normal';
+      
+    default:
+      return 'normal';
+  }
+}
+
+function updateVitalIndicator(input, vitalType) {
+  // Remove all existing classes
+  input.classList.remove('vital-normal', 'vital-abnormal', 'vital-critical');
+  
+  const assessment = assessVital(input.value, vitalType);
+  if (input.value && input.value !== '') {
+    input.classList.add(`vital-${assessment}`);
+  }
+}
+
+function getVitalClass(value, vitalType) {
+  const assessment = assessVital(value, vitalType);
+  return `vital-value-${assessment}`;
+}
+
+/* Vital Info Modal Functions */
+function showVitalInfo(vitalType) {
+  const modal = document.getElementById('vital-info-modal');
+  const title = document.getElementById('vital-info-title');
+  const content = document.getElementById('vital-info-content');
+  
+  // Define vital information
+  const vitalInfo = {
+    'bp': {
+      title: 'Blood Pressure',
+      description: 'Blood pressure is the force of blood pushing against the walls of the arteries as the heart pumps blood.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Category</th>
+            <th>Systolic (mmHg)</th>
+            <th>Diastolic (mmHg)</th>
+          </tr>
+          <tr>
+            <td class="range-normal">Normal</td>
+            <td class="range-normal">101-159</td>
+            <td class="range-normal">71-99</td>
+          </tr>
+          <tr>
+            <td class="range-abnormal">Abnormal</td>
+            <td class="range-abnormal">90-100 or 160-200</td>
+            <td class="range-abnormal">60-70 or 100-120</td>
+          </tr>
+          <tr>
+            <td class="range-critical">Critical</td>
+            <td class="range-critical">&lt;90 or &gt;200</td>
+            <td class="range-critical">&lt;60 or &gt;120</td>
+          </tr>
+        </table>
+      `
+    },
+    'pulse': {
+      title: 'Pulse',
+      description: 'Pulse is the rate at which the heart beats, measured in beats per minute (bpm).',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Category</th>
+            <th>Range (bpm)</th>
+          </tr>
+          <tr>
+            <td class="range-normal">Normal</td>
+            <td class="range-normal">51-99</td>
+          </tr>
+          <tr>
+            <td class="range-abnormal">Abnormal</td>
+            <td class="range-abnormal">40-50 or 100-130</td>
+          </tr>
+          <tr>
+            <td class="range-critical">Critical</td>
+            <td class="range-critical">&lt;40 or &gt;130</td>
+          </tr>
+        </table>
+      `
+    },
+    'spo2': {
+      title: 'SPO₂ (Oxygen Saturation)',
+      description: 'SPO₂ measures the percentage of hemoglobin in the blood that is saturated with oxygen.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Category</th>
+            <th>Range (%)</th>
+          </tr>
+          <tr>
+            <td class="range-normal">Normal</td>
+            <td class="range-normal">95-100</td>
+          </tr>
+          <tr>
+            <td class="range-abnormal">Abnormal</td>
+            <td class="range-abnormal">90-94</td>
+          </tr>
+          <tr>
+            <td class="range-critical">Critical</td>
+            <td class="range-critical">&lt;90</td>
+          </tr>
+        </table>
+      `
+    },
+    'o2': {
+      title: 'O₂ Delivery',
+      description: 'Different methods of delivering supplemental oxygen to patients who require it.',
+      ranges: `
+        <p><strong>Nasal Cannula:</strong> 1-6 L/min, provides 24-44% oxygen</p>
+        <p><strong>Face Mask:</strong> 5-10 L/min, provides 40-60% oxygen</p>
+        <p><strong>Non-rebreather Mask:</strong> 10-15 L/min, provides 60-80% oxygen</p>
+        <p><strong>Bag-Valve Mask:</strong> 15 L/min, provides 90-100% oxygen</p>
+      `
+    },
+    'o2-flow': {
+      title: 'O₂ Flow Rate',
+      description: 'The rate at which oxygen is delivered, measured in liters per minute (L/min).',
+      ranges: `
+        <p>Flow rates vary based on delivery method:</p>
+        <p><strong>Nasal Cannula:</strong> 1-6 L/min</p>
+        <p><strong>Face Mask:</strong> 5-10 L/min</p>
+        <p><strong>Non-rebreather Mask:</strong> 10-15 L/min</p>
+        <p><strong>Bag-Valve Mask:</strong> 15 L/min</p>
+      `
+    },
+    'rrate': {
+      title: 'Respiratory Rate',
+      description: 'The number of breaths taken per minute.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Category</th>
+            <th>Range (breaths/min)</th>
+          </tr>
+          <tr>
+            <td class="range-normal">Normal</td>
+            <td class="range-normal">13-24</td>
+          </tr>
+          <tr>
+            <td class="range-abnormal">Abnormal</td>
+            <td class="range-abnormal">8-12 or 25-30</td>
+          </tr>
+          <tr>
+            <td class="range-critical">Critical</td>
+            <td class="range-critical">&lt;8 or &gt;30</td>
+          </tr>
+        </table>
+      `
+    },
+    'hgt': {
+      title: 'Blood Glucose (HGT)',
+      description: 'The concentration of glucose in the blood, measured in millimoles per liter (mmol/L).',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Category</th>
+            <th>Range (mmol/L)</th>
+          </tr>
+          <tr>
+            <td class="range-normal">Normal</td>
+            <td class="range-normal">4.1-14.9</td>
+          </tr>
+          <tr>
+            <td class="range-abnormal">Abnormal</td>
+            <td class="range-abnormal">2.5-4 or 15-20</td>
+          </tr>
+          <tr>
+            <td class="range-critical">Critical</td>
+            <td class="range-critical">&lt;2.5 or &gt;20</td>
+          </tr>
+        </table>
+      `
+    },
+    'temp': {
+      title: 'Temperature',
+      description: 'The measure of body heat, measured in degrees Celsius (°C).',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Category</th>
+            <th>Range (°C)</th>
+          </tr>
+          <tr>
+            <td class="range-normal">Normal</td>
+            <td class="range-normal">36.1-37.9</td>
+          </tr>
+          <tr>
+            <td class="range-abnormal">Abnormal</td>
+            <td class="range-abnormal">35-36 or 38-39</td>
+          </tr>
+          <tr>
+            <td class="range-critical">Critical</td>
+            <td class="range-critical">&lt;35 or &gt;39</td>
+          </tr>
+        </table>
+      `
+    },
+    'cap-refill': {
+      title: 'Capillary Refill',
+      description: 'The time it takes for color to return to an external capillary bed after pressure is applied.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Category</th>
+            <th>Range (seconds)</th>
+          </tr>
+          <tr>
+            <td class="range-normal">Normal</td>
+            <td class="range-normal">&lt;2</td>
+          </tr>
+          <tr>
+            <td class="range-abnormal">Abnormal</td>
+            <td class="range-abnormal">2-3</td>
+          </tr>
+          <tr>
+            <td class="range-critical">Critical</td>
+            <td class="range-critical">&gt;3</td>
+          </tr>
+        </table>
+      `
+    },
+    'pupils': {
+      title: 'Pupils',
+      description: 'The pupils are the black circular opening in the center of the eye that allows light to enter.',
+      ranges: `
+        <p><strong>Normal:</strong> 3-5 mm in diameter, equal in size, reactive to light</p>
+        <p><strong>Abnormal:</strong> Unequal size, sluggish reaction, or unusual size</p>
+        <p><strong>Blown pupils:</strong> Dilated pupils (>7 mm) that don't react to light</p>
+        <p><strong>Pinpoint pupils:</strong> Very small pupils (<2 mm) often associated with opioid use</p>
+      `
+    },
+    'pain': {
+      title: 'Pain Score',
+      description: 'A subjective measure of pain intensity, typically rated on a scale of 0-10.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Category</th>
+            <th>Range (0-10)</th>
+          </tr>
+          <tr>
+            <td class="range-normal">Normal</td>
+            <td class="range-normal">0-4</td>
+          </tr>
+          <tr>
+            <td class="range-abnormal">Abnormal</td>
+            <td class="range-abnormal">5-7</td>
+          </tr>
+          <tr>
+            <td class="range-critical">Critical</td>
+            <td class="range-critical">8-10</td>
+          </tr>
+        </table>
+      `
+    },
+    'ecg': {
+      title: 'ECG Rhythm',
+      description: 'The electrical activity of the heart as recorded by an electrocardiogram.',
+      ranges: `
+        <p><strong>Sinus:</strong> Normal heart rhythm</p>
+        <p><strong>Sinus Tachycardia:</strong> Fast heart rate (>100 bpm) with normal rhythm</p>
+        <p><strong>Sinus Bradycardia:</strong> Slow heart rate (<60 bpm) with normal rhythm</p>
+        <p><strong>Atrial Fibrillation:</strong> Irregular and often rapid heart rhythm</p>
+        <p><strong>Ventricular Tachycardia:</strong> Fast, regular rhythm originating in ventricles</p>
+        <p><strong>Ventricular Fibrillation:</strong> Disorganized electrical activity, life-threatening</p>
+        <p><strong>Asystole:</strong> Flatline, no electrical activity in the heart</p>
+      `
+    },
+    'pain-location': {
+      title: 'Pain Location',
+      description: 'The specific area of the body where pain is experienced.',
+      ranges: `
+        <p>Documenting pain location helps identify potential causes:</p>
+        <p><strong>Chest pain:</strong> May indicate cardiac issues</p>
+        <p><strong>Abdominal pain:</strong> May indicate gastrointestinal or organ issues</p>
+        <p><strong>Head pain:</strong> May indicate neurological issues</p>
+        <p><strong>Extremity pain:</strong> May indicate musculoskeletal injury</p>
+      `
+    },
+    'skin': {
+      title: 'Skin Condition',
+      description: 'The appearance and condition of the skin can indicate various medical states.',
+      ranges: `
+        <p><strong>Normal:</strong> Pink, warm, dry skin</p>
+        <p><strong>Pale:</strong> May indicate shock, anemia, or poor circulation</p>
+        <p><strong>Cyanotic:</strong> Bluish discoloration indicating poor oxygenation</p>
+        <p><strong>Flushed:</strong> Reddened skin, may indicate fever or hypertension</p>
+        <p><strong>Mottled:</strong> Patchy discoloration indicating poor circulation</p>
+        <p><strong>Diaphoretic:</strong> Sweaty skin, may indicate pain, shock, or cardiac issues</p>
+      `
+    },
+    // GCS information
+    'gcs-eye': {
+      title: 'GCS Eye Opening Response',
+      description: 'The eye opening response assesses the arousal mechanism of the patient.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Response</th>
+            <th>Score</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td>Spontaneous</td>
+            <td>4</td>
+            <td>Eyes open spontaneously without any stimulus</td>
+          </tr>
+          <tr>
+            <td>To Speech</td>
+            <td>3</td>
+            <td>Eyes open in response to verbal stimulus</td>
+          </tr>
+          <tr>
+            <td>To Pain</td>
+            <td>2</td>
+            <td>Eyes open in response to painful stimulus</td>
+          </tr>
+          <tr>
+            <td>No Response</td>
+            <td>1</td>
+            <td>Eyes remain closed despite stimuli</td>
+          </tr>
+        </table>
+        <p><strong>Testing tips:</strong> Call the patient's name first. If no response, use a louder verbal command. If still no response, apply a peripheral painful stimulus.</p>
+      `
+    },
+    'gcs-verbal': {
+      title: 'GCS Verbal Response',
+      description: 'The verbal response assesses the content and clarity of the patient\'s speech.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Response</th>
+            <th>Score</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td>Orientated</td>
+            <td>5</td>
+            <td>Patient can answer questions about person, place, time, and event</td>
+          </tr>
+          <tr>
+            <td>Confused</td>
+            <td>4</td>
+            <td>Patient responds to questions but answers are confused or disoriented</td>
+          </tr>
+          <tr>
+            <td>Inappropriate Words</td>
+            <td>3</td>
+            <td>Random or exclamatory speech, but able to form words</td>
+          </tr>
+          <tr>
+            <td>Incomprehensible Sounds</td>
+            <td>2</td>
+            <td>Moaning or groaning without recognizable words</td>
+          </tr>
+          <tr>
+            <td>No Response</td>
+            <td>1</td>
+            <td>No verbal response despite stimuli</td>
+          </tr>
+        </table>
+        <p><strong>Testing tips:</strong> Ask orientation questions like "What is your name?", "Where are you?", "What month is it?". If patient is intubated or has other barriers to speech, note this in your assessment.</p>
+      `
+    },
+    'gcs-motor': {
+      title: 'GCS Motor Response',
+      description: 'The motor response assesses the patient\'s ability to move extremities on command or in response to stimuli.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Response</th>
+            <th>Score</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td>Obeys Commands</td>
+            <td>6</td>
+            <td>Patient can perform simple motor tasks on command</td>
+          </tr>
+          <tr>
+            <td>Localises to Pain</td>
+            <td>5</td>
+            <td>Patient attempts to remove source of painful stimulus</td>
+          </tr>
+          <tr>
+            <td>Withdraws from Pain</td>
+            <td>4</td>
+            <td>Patient pulls away from painful stimulus</td>
+          </tr>
+          <tr>
+            <td>Flexion to Pain (decorticate)</td>
+            <td>3</td>
+            <td>Abnormal flexion - arms flexed toward chest, wrists and fingers flexed</td>
+          </tr>
+          <tr>
+            <td>Extension to Pain (decerebrate)</td>
+            <td>2</td>
+            <td>Abnormal extension - arms extended and internally rotated</td>
+          </tr>
+          <tr>
+            <td>No Response</td>
+            <td>1</td>
+            <td>No motor response despite stimuli</td>
+          </tr>
+        </table>
+        <p><strong>Testing tips:</strong> Start with simple commands like "squeeze my hand" or "stick out your tongue". If no response, apply a standardized painful stimulus to a peripheral site and observe the response.</p>
+      `
+    },
+    'gcs-total': {
+      title: 'GCS Total Score Interpretation',
+      description: 'The Glasgow Coma Scale total score provides an overall assessment of the patient\'s level of consciousness.',
+      ranges: `
+        <table class="vital-range-table">
+          <tr>
+            <th>Total Score</th>
+            <th>Severity</th>
+            <th>Implications</th>
+          </tr>
+          <tr>
+            <td>13-15</td>
+            <td class="range-normal">Mild</td>
+            <td>Minor brain injury, patient is alert and oriented</td>
+          </tr>
+          <tr>
+            <td>9-12</td>
+            <td class="range-abnormal">Moderate</td>
+            <td>Moderate brain injury, patient may be confused or drowsy</td>
+          </tr>
+          <tr>
+            <td>3-8</td>
+            <td class="range-critical">Severe</td>
+            <td>Severe brain injury, patient is in a coma</td>
+          </tr>
+        </table>
+        <p><strong>Clinical significance:</strong></p>
+        <ul>
+          <li>Score of 8 or less typically indicates the need for airway protection</li>
+          <li>Score of 3 indicates deep coma or brain death</li>
+          <li>Serial GCS assessments help track neurological status over time</li>
+          <li>Special considerations for pediatric patients and those with pre-existing conditions</li>
+        </ul>
+      `
+    }
+  };
+  
+  // Set modal content based on vital type
+  if (vitalInfo[vitalType]) {
+    title.textContent = vitalInfo[vitalType].title;
+    content.innerHTML = `
+      <p>${vitalInfo[vitalType].description}</p>
+      ${vitalInfo[vitalType].ranges}
+    `;
+  } else {
+    title.textContent = 'Vital Information';
+    content.innerHTML = '<p>Information not available.</p>';
+  }
+  
+  // Display modal
+  modal.style.display = 'block';
+}
+
+function closeVitalInfo() {
+  document.getElementById('vital-info-modal').style.display = 'none';
+}
+
+/* Results Modal Functions */
+function showResults() {
+  document.getElementById('results-modal').style.display = 'block';
+  // Generate results automatically when opening
+  generateResults();
+}
+
+function closeResults() {
+  document.getElementById('results-modal').style.display = 'none';
+}
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+  const vitalModal = document.getElementById('vital-info-modal');
+  const resultsModal = document.getElementById('results-modal');
+  
+  if (event.target == vitalModal) {
+    vitalModal.style.display = 'none';
+  }
+  if (event.target == resultsModal) {
+    resultsModal.style.display = 'none';
+  }
 }
 
 /* Trend detection rules:
@@ -1108,18 +2076,45 @@ function renderVitalsLog() {
   if (vitalsLog.length === 0) { el.innerHTML = '<div class="log-item meta">No vitals recorded yet</div>'; return; }
   vitalsLog.forEach(item => {
     const lines = [];
-    if (item.bpSys && item.bpDia) lines.push(`BP: ${item.bpSys}/${item.bpDia} mmHg`);
-    if (item.pulse) lines.push(`Pulse: ${item.pulse} bpm`);
+    if (item.bpSys && item.bpDia) {
+      const sysClass = getVitalClass(item.bpSys, 'bp-sys');
+      const diaClass = getVitalClass(item.bpDia, 'bp-dia');
+      lines.push(`BP: <span class="${sysClass}">${item.bpSys}</span>/<span class="${diaClass}">${item.bpDia}</span> mmHg`);
+    }
+    if (item.pulse) {
+      const pulseClass = getVitalClass(item.pulse, 'pulse');
+      lines.push(`Pulse: <span class="${pulseClass}">${item.pulse}</span> bpm`);
+    }
     if (item.spo2) {
-      let s = `SPO₂: ${item.spo2}%`;
+      const spo2Class = getVitalClass(item.spo2, 'spo2');
+      let s = `SPO₂: <span class="${spo2Class}">${item.spo2}</span>%`;
       if (item.o2Delivery) s += ` (${item.o2Delivery})`;
       lines.push(s);
     }
-    if (item.rrate) lines.push(`Resp Rate: ${item.rrate}/min`);
-    if (item.temp) lines.push(`Temp: ${item.temp} °C`);
-    if (item.capRefill) lines.push(`Cap Refill: ${item.capRefill} s`);
-    if (item.pupilLeft || item.pupilRight) lines.push(`Pupils: L${item.pupilLeft || ''} R${item.pupilRight || ''}`);
-    if (item.pain) lines.push(`Pain: ${item.pain}/10`);
+    if (item.rrate) {
+      const rrClass = getVitalClass(item.rrate, 'rrate');
+      lines.push(`Resp Rate: <span class="${rrClass}">${item.rrate}</span>/min`);
+    }
+    if (item.temp) {
+      const tempClass = getVitalClass(item.temp, 'temp');
+      lines.push(`Temp: <span class="${tempClass}">${item.temp}</span> °C`);
+    }
+    if (item.capRefill) {
+      const capClass = getVitalClass(item.capRefill, 'cap-refill');
+      lines.push(`Cap Refill: <span class="${capClass}">${item.capRefill}</span> s`);
+    }
+    if (item.pupilLeft || item.pupilRight) {
+      const pupilText = `Pupils: L${item.pupilLeft || ''} R${item.pupilRight || ''}`;
+      if (item.pupilsReactive) {
+        lines.push(`${pupilText} (Reactive)`);
+      } else {
+        lines.push(pupilText);
+      }
+    }
+    if (item.pain) {
+      const painClass = getVitalClass(item.pain, 'pain');
+      lines.push(`Pain: <span class="${painClass}">${item.pain}</span>/10`);
+    }
     if (item.ecg) lines.push(`ECG: ${item.ecg}`);
     if (item.painLocation) lines.push(`Pain Location: ${item.painLocation}`);
     if (item.skin) lines.push(`Skin: ${item.skin}`);
@@ -1136,9 +2131,11 @@ function renderGcsLog() {
   el.innerHTML = '';
   if (gcsLog.length === 0) { el.innerHTML = '<div class="log-item meta">No GCS recorded yet</div>'; return; }
   gcsLog.forEach(item=>{
+    const gcsClass = item.total <= 8 ? 'vital-value-critical' : 
+                    item.total <= 12 ? 'vital-value-abnormal' : 'vital-value-normal';
     const div = document.createElement('div');
     div.className='log-item';
-    div.innerHTML = `<div><strong>${item.time}</strong> — Total: ${item.total}/15 (E${item.eye} V${item.verbal} M${item.motor})</div>`;
+    div.innerHTML = `<div><strong>${item.time}</strong> — Total: <span class="${gcsClass}">${item.total}</span>/15 (E${item.eye} V${item.verbal} M${item.motor})</div>`;
     el.appendChild(div);
   });
 }
@@ -1223,6 +2220,8 @@ function submitVitals() {
   patientInfo.history = document.getElementById('history').value.trim();
   patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
   patientInfo.signsSymptoms = document.getElementById('signs-symptoms').value.trim();
+  patientInfo.priority = document.getElementById('patient-priority').value;
+  patientInfo.pupilsReactive = document.getElementById('pupils-reactive').checked;
 
   const item = {
     time: nowTimestamp(),
@@ -1242,7 +2241,8 @@ function submitVitals() {
     pain: document.getElementById('pain').value.trim(),
     ecg: document.getElementById('ecg').value,
     painLocation: document.getElementById('pain-location').value.trim(),
-    skin: document.getElementById('skin').value
+    skin: document.getElementById('skin').value,
+    pupilsReactive: document.getElementById('pupils-reactive').checked
   };
 
   // Prepend newest
@@ -1266,6 +2266,8 @@ function clearVitalsInputs() {
     if(!el) return;
     if(el.type === 'checkbox') el.checked = false;
     else el.value = '';
+    // Remove color classes
+    el.classList.remove('vital-normal', 'vital-abnormal', 'vital-critical');
   });
 }
 
@@ -1321,6 +2323,8 @@ function generateResults() {
   patientInfo.history = document.getElementById('history').value.trim();
   patientInfo.lastIntake = document.getElementById('last-intake').value.trim();
   patientInfo.signsSymptoms = document.getElementById('signs-symptoms').value.trim();
+  patientInfo.priority = document.getElementById('patient-priority').value;
+  patientInfo.pupilsReactive = document.getElementById('pupils-reactive').checked;
 
   // Update alerts in case user viewed Results
   renderAlertsToTabs();
@@ -1335,6 +2339,15 @@ function generateResults() {
     
     report += `SITUATION:\n`;
     report += `${patientInfo.name || 'Unknown'}, ${patientInfo.age || 'Unknown'}y/o, ${patientInfo.incident || 'Unknown incident'}\n`;
+    if (patientInfo.priority) {
+      const priorityDesc = {
+        'P1': 'Immediate (Critical/Urgent)',
+        'P2': 'Urgent (Serious)',
+        'P3': 'Delayed (Walking Wounded)',
+        'P4': 'Deceased'
+      };
+      report += `Priority: ${patientInfo.priority} - ${priorityDesc[patientInfo.priority]}\n`;
+    }
     report += `Responder: ${patientInfo.responderId || 'Unknown'}\n\n`;
     
     report += `BACKGROUND:\n`;
@@ -1393,6 +2406,7 @@ function generateResults() {
     addLine('Responder ID', patientInfo.responderId);
     addLine('Name', patientInfo.name);
     addLine('Age', patientInfo.age);
+    addLine('Priority', patientInfo.priority);
     addLine('Incident', patientInfo.incident);
     addLine('Allergies', patientInfo.allergies);
     addLine('Medication', patientInfo.medication);
@@ -1417,7 +2431,14 @@ function generateResults() {
         if (v.rrate) report += `Resp Rate      : ${v.rrate}/min${ showTS ? ' ' + v.time : '' }\n`;
         if (v.temp) report += `Temperature    : ${v.temp} °C${ showTS ? ' ' + v.time : '' }\n`;
         if (v.capRefill) report += `Cap Refill     : ${v.capRefill} s${ showTS ? ' ' + v.time : '' }\n`;
-        if (v.pupilLeft || v.pupilRight) report += `Pupils         : L${v.pupilLeft || ''} R${v.pupilRight || ''}${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.pupilLeft || v.pupilRight) {
+          const pupilText = `Pupils         : L${v.pupilLeft || ''} R${v.pupilRight || ''}`;
+          if (v.pupilsReactive) {
+            report += `${pupilText} (Reactive)${ showTS ? ' ' + v.time : '' }\n`;
+          } else {
+            report += `${pupilText}${ showTS ? ' ' + v.time : '' }\n`;
+          }
+        }
         if (v.pain) report += `Pain           : ${v.pain} /10${ showTS ? ' ' + v.time : '' }\n`;
         if (v.ecg) report += `ECG            : ${v.ecg}${ showTS ? ' ' + v.time : '' }\n`;
         if (v.painLocation) report += `Pain Location  : ${v.painLocation}${ showTS ? ' ' + v.time : '' }\n`;
@@ -1467,14 +2488,14 @@ function generateResults() {
    ------------------------- */
 function copyResults() {
   const resultsArea = document.getElementById('results-output');
-  if (!resultsArea.value) { alert('Generate report first'); return; }
+  if (!resultsArea.value) { alert('Generate results first'); return; }
   resultsArea.select();
-  navigator.clipboard.writeText(resultsArea.value).then(()=>alert('Report copied to clipboard!'), ()=>alert('Copy failed'));
+  navigator.clipboard.writeText(resultsArea.value).then(()=>alert('Results copied to clipboard!'), ()=>alert('Copy failed'));
 }
 
 function downloadReport() {
   const txt = document.getElementById('results-output').value;
-  if (!txt) { alert('Generate report first'); return; }
+  if (!txt) { alert('Generate results first'); return; }
   const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
