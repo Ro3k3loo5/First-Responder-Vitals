@@ -74,6 +74,7 @@ body{
 }
 .tab-button.active{ background:var(--primary-accent); color:#fff; border-bottom:3px solid var(--secondary-accent); }
 .tab-content{ display:none; padding:18px; animation:fadeIn .25s ease; }
+.tab-content.active{ display:block; }
 @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
 .form-group{ margin-bottom:16px; }
 .form-group label{ display:block; font-weight:600; margin-bottom:8px; }
@@ -568,6 +569,7 @@ body{
     <button class="tab-button active" onclick="openTab(event,'patient-info')">Patient Info</button>
     <button class="tab-button" onclick="openTab(event,'vitals')">Vitals</button>
     <button class="tab-button" onclick="openTab(event,'gcs')">GCS</button>
+    <button class="tab-button" onclick="openTab(event,'cpr')">CPR</button>
     <button class="tab-button" onclick="openTab(event,'notes')">Notes</button>
   </div>
 
@@ -879,6 +881,163 @@ body{
     </div>
   </div>
 
+  <!-- CPR -->
+  <div id="cpr" class="tab-content">
+    <div class="tab-patient-header">
+      <span class="patient-indicator">CURRENT PATIENT</span>
+      <span id="cpr-current">New Patient</span>
+    </div>
+    
+    <h2>CPR Management</h2>
+
+    <!-- CPR Stopwatch and Metronome -->
+    <div class="form-group">
+      <h3>CPR Timer & Metronome</h3>
+      <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px;">
+        <div>
+          <label for="cpr-stopwatch">CPR Time:</label>
+          <div id="cpr-stopwatch" style="font-size: 2rem; font-weight: bold; color: var(--primary-accent);">00:00:00</div>
+        </div>
+        <div>
+          <label for="metronome-bpm">Metronome BPM:</label>
+          <input id="metronome-bpm" type="number" value="100" min="60" max="120" style="width: 80px;">
+          <div style="margin-top: 10px;">
+            <label><input type="radio" name="cpr-mode" value="standard" checked> Standard CPR (30:2)</label><br>
+            <label><input type="radio" name="cpr-mode" value="single"> Single Person CPR</label>
+          </div>
+          <button id="start-cpr-metronome" class="btn btn-danger small-btn" onclick="toggleMetronome(true)">Start CPR</button>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <!-- Start CPR now handled by metronome button -->
+        <button id="pause-cpr" class="btn btn-secondary" onclick="pauseCPR()" disabled>Pause CPR</button>
+        <button id="reset-cpr" class="btn btn-danger" onclick="resetCPR()">Reset CPR</button>
+      </div>
+    </div>
+
+    <!-- CPR Sub-tabs -->
+    <div class="tab-nav" style="margin-top: 20px;">
+      <button class="tab-button" onclick="openCPRSubTab(event,'pulse-check')">Pulse Check</button>
+      <button class="tab-button" onclick="openCPRSubTab(event,'shock')">Shock</button>
+      <button class="tab-button" onclick="openCPRSubTab(event,'rhythm')">Rhythm</button>
+      <button class="tab-button active" onclick="openCPRSubTab(event,'cpr-medication')">Medication</button>
+      <button class="tab-button" onclick="openCPRSubTab(event,'intervention')">Intervention</button>
+      <button class="tab-button" onclick="openCPRSubTab(event,'epinephrine')">Epinephrine</button>
+    </div>
+
+    <!-- Pulse Check Sub-tab -->
+    <div id="pulse-check" class="tab-content" style="padding: 18px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 10px;">
+      <h4>Pulse Check (Every 2 minutes)</h4>
+      <div id="pulse-check-timer" style="font-size: 1.2rem; margin-bottom: 10px; color: var(--warn-amber);">
+        Next pulse check: 02:00
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <button class="btn btn-success" onclick="recordPulseCheck('pulse')">Pulse Present</button>
+        <button class="btn btn-danger" onclick="recordPulseCheck('no-pulse')">No Pulse</button>
+      </div>
+      <div id="pulse-check-log" class="log-list" style="max-height: 150px;"></div>
+    </div>
+
+    <!-- Shock Sub-tab -->
+    <div id="shock" class="tab-content" style="padding: 18px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 10px;">
+      <h4>Defibrillation</h4>
+      <div class="form-group">
+        <label for="shock-joules">Joules:</label>
+        <input id="shock-joules" type="number" value="200" min="50" max="360" step="10">
+      </div>
+      <div class="form-group">
+        <label>
+          <input id="double-seq-defib" type="checkbox"> Double Sequential Defibrillation
+        </label>
+      </div>
+      <button class="btn btn-danger" onclick="logShock()">Log Shock</button>
+      <div id="shock-log" class="log-list" style="max-height: 150px; margin-top: 10px;"></div>
+    </div>
+
+    <!-- Rhythm Sub-tab -->
+    <div id="rhythm" class="tab-content" style="padding: 18px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 10px;">
+      <h4>Rhythm Assessment</h4>
+      <div class="form-group">
+        <label for="rhythm-select">Select Rhythm:</label>
+        <select id="rhythm-select">
+          <option value="">Select...</option>
+          <option value="VF">VF</option>
+          <option value="VT">VT</option>
+          <option value="Asystole">Asystole</option>
+          <option value="PEA">PEA</option>
+        </select>
+        <button class="btn btn-secondary" onclick="logSelectedRhythm()">Log Rhythm</button>
+      </div>
+      <div id="rhythm-log" class="log-list" style="max-height: 150px;"></div>
+    </div>
+
+    <!-- Medication Sub-tab -->
+    <div id="cpr-medication" class="tab-content active" style="display: block; padding: 18px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 10px;">
+      <h4>Medications</h4>
+      <div class="form-group">
+        <label for="medication-select">Select Medication:</label>
+        <select id="medication-select">
+          <option value="">Select...</option>
+          <option value="Amiodarone">Amiodarone</option>
+          <option value="Lidocaine">Lidocaine</option>
+          <option value="Calcium Chloride">Calcium Chloride</option>
+          <option value="Sodium Bicarb">Sodium Bicarb</option>
+        </select>
+        <button class="btn btn-info" onclick="logSelectedMedication()">Log Medication</button>
+      </div>
+      <div class="form-group">
+        <label for="other-medication">Other Medication:</label>
+        <input id="other-medication" type="text" placeholder="Enter medication name">
+        <button class="btn btn-info" onclick="logOtherMedication()">Log Other</button>
+      </div>
+      <div id="medication-log" class="log-list" style="max-height: 150px; margin-top: 10px;"></div>
+    </div>
+
+    <!-- Intervention Sub-tab -->
+    <div id="intervention" class="tab-content" style="padding: 18px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 10px;">
+      <h4>Interventions</h4>
+      <div class="form-group">
+        <label for="intervention-select">Select Intervention:</label>
+        <select id="intervention-select">
+          <option value="">Select...</option>
+          <option value="Intubation">Intubation</option>
+          <option value="Needle Decompression">Needle Decompression</option>
+          <option value="Chest Tube">Chest Tube</option>
+          <option value="Central Line IO">Central Line IO</option>
+          <option value="IV">IV</option>
+        </select>
+        <button class="btn btn-warning" onclick="logSelectedIntervention()">Log Intervention</button>
+      </div>
+      <div class="form-group">
+        <label for="other-intervention">Other Intervention:</label>
+        <input id="other-intervention" type="text" placeholder="Enter intervention">
+        <button class="btn btn-warning" onclick="logOtherIntervention()">Log Other</button>
+      </div>
+      <div id="intervention-log" class="log-list" style="max-height: 150px; margin-top: 10px;"></div>
+    </div>
+
+    <!-- Epinephrine Sub-tab -->
+    <div id="epinephrine" class="tab-content" style="padding: 18px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 10px;">
+      <h4>Epinephrine Administration</h4>
+      <div class="form-group">
+        <label>Epinephrine Schedule:</label>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <label><input type="radio" name="epinephrine-schedule" value="Every 3min"> Every 3min</label>
+          <label><input type="radio" name="epinephrine-schedule" value="Every 4min"> Every 4min</label>
+          <label><input type="radio" name="epinephrine-schedule" value="Every 5min"> Every 5min</label>
+        </div>
+        <button class="btn btn-danger" onclick="logSelectedEpinephrine()">Log Epinephrine</button>
+      </div>
+      <div id="epinephrine-log" class="log-list" style="max-height: 150px;"></div>
+    </div>
+
+    <!-- CPR Log -->
+    <div style="margin-top: 20px;">
+      <label class="small">CPR Activity Log (newest first)</label>
+      <div id="cpr-log" class="log-list" aria-live="polite" style="max-height: 200px;"></div>
+    </div>
+  </div>
+
   <!-- NOTES -->
   <div id="notes" class="tab-content">
     <div class="tab-patient-header">
@@ -993,6 +1152,24 @@ let patientInfo = {
 let vitalsLog = []; // newest first
 let gcsLog = [];    // newest first
 let notesLog = [];  // newest first
+let cprLog = [];    // newest first
+let pulseCheckLog = [];
+let shockLog = [];
+let rhythmLog = [];
+let medicationLog = [];
+let interventionLog = [];
+let epinephrineLog = [];
+
+// CPR Timer variables
+let cprStartTime = null;
+let cprElapsedTime = 0;
+let cprTimerInterval = null;
+let pulseCheckInterval = null;
+let metronomeInterval = null;
+let metronomePlaying = false;
+let cprMode = 'standard'; // 'standard' or 'single'
+let singlePersonCycle = 0; // for single person CPR
+let pulseCheckCount = 0; // counter for pulse check sets
 
 // Patient management
 let currentPatientId = null;
@@ -1116,6 +1293,13 @@ function saveToLocalStorage() {
   localStorage.setItem('vitalsLog', JSON.stringify(vitalsLog));
   localStorage.setItem('gcsLog', JSON.stringify(gcsLog));
   localStorage.setItem('notesLog', JSON.stringify(notesLog));
+  localStorage.setItem('cprLog', JSON.stringify(cprLog));
+  localStorage.setItem('pulseCheckLog', JSON.stringify(pulseCheckLog));
+  localStorage.setItem('shockLog', JSON.stringify(shockLog));
+  localStorage.setItem('rhythmLog', JSON.stringify(rhythmLog));
+  localStorage.setItem('medicationLog', JSON.stringify(medicationLog));
+  localStorage.setItem('interventionLog', JSON.stringify(interventionLog));
+  localStorage.setItem('epinephrineLog', JSON.stringify(epinephrineLog));
   localStorage.setItem('currentPatientId', currentPatientId);
   localStorage.setItem('patients', JSON.stringify(patients));
 }
@@ -1133,6 +1317,27 @@ function loadFromLocalStorage() {
   const savedNotes = localStorage.getItem('notesLog');
   if (savedNotes) notesLog = JSON.parse(savedNotes);
   
+  const savedCPR = localStorage.getItem('cprLog');
+  if (savedCPR) cprLog = JSON.parse(savedCPR);
+  
+  const savedPulseChecks = localStorage.getItem('pulseCheckLog');
+  if (savedPulseChecks) pulseCheckLog = JSON.parse(savedPulseChecks);
+  
+  const savedShocks = localStorage.getItem('shockLog');
+  if (savedShocks) shockLog = JSON.parse(savedShocks);
+  
+  const savedRhythms = localStorage.getItem('rhythmLog');
+  if (savedRhythms) rhythmLog = JSON.parse(savedRhythms);
+  
+  const savedMedications = localStorage.getItem('medicationLog');
+  if (savedMedications) medicationLog = JSON.parse(savedMedications);
+  
+  const savedInterventions = localStorage.getItem('interventionLog');
+  if (savedInterventions) interventionLog = JSON.parse(savedInterventions);
+  
+  const savedEpinephrine = localStorage.getItem('epinephrineLog');
+  if (savedEpinephrine) epinephrineLog = JSON.parse(savedEpinephrine);
+  
   const savedCurrentPatientId = localStorage.getItem('currentPatientId');
   if (savedCurrentPatientId) currentPatientId = savedCurrentPatientId;
   
@@ -1148,7 +1353,14 @@ function addPatient() {
       info: {...patientInfo},
       vitals: [...vitalsLog],
       gcs: [...gcsLog],
-      notes: [...notesLog]
+      notes: [...notesLog],
+      cpr: [...cprLog],
+      pulseChecks: [...pulseCheckLog],
+      shocks: [...shockLog],
+      rhythms: [...rhythmLog],
+      medications: [...medicationLog],
+      interventions: [...interventionLog],
+      epinephrine: [...epinephrineLog]
     };
   }
   
@@ -1170,7 +1382,14 @@ function addPatient() {
     },
     vitals: [],
     gcs: [],
-    notes: []
+    notes: [],
+    cpr: [],
+    pulseChecks: [],
+    shocks: [],
+    rhythms: [],
+    medications: [],
+    interventions: [],
+    epinephrine: []
   };
   
   currentPatientId = patientId;
@@ -1180,12 +1399,26 @@ function addPatient() {
   vitalsLog = [];
   gcsLog = [];
   notesLog = [];
+  cprLog = [];
+  pulseCheckLog = [];
+  shockLog = [];
+  rhythmLog = [];
+  medicationLog = [];
+  interventionLog = [];
+  epinephrineLog = [];
   
   // Update UI
   updatePatientInfoFields();
   renderVitalsLog();
   renderGcsLog();
   renderNotesLog();
+  renderCPRLog();
+  renderPulseCheckLog();
+  renderShockLog();
+  renderRhythmLog();
+  renderMedicationLog();
+  renderInterventionLog();
+  renderEpinephrineLog();
   renderPatientList();
   renderVitalsChart();
   renderAlertsToTabs();
@@ -1207,7 +1440,14 @@ function switchPatient(patientId) {
       info: {...patientInfo},
       vitals: [...vitalsLog],
       gcs: [...gcsLog],
-      notes: [...notesLog]
+      notes: [...notesLog],
+      cpr: [...cprLog],
+      pulseChecks: [...pulseCheckLog],
+      shocks: [...shockLog],
+      rhythms: [...rhythmLog],
+      medications: [...medicationLog],
+      interventions: [...interventionLog],
+      epinephrine: [...epinephrineLog]
     };
   }
   
@@ -1216,11 +1456,25 @@ function switchPatient(patientId) {
   vitalsLog = [...patients[patientId].vitals];
   gcsLog = [...patients[patientId].gcs];
   notesLog = [...patients[patientId].notes];
+  cprLog = patients[patientId].cpr ? [...patients[patientId].cpr] : [];
+  pulseCheckLog = patients[patientId].pulseChecks ? [...patients[patientId].pulseChecks] : [];
+  shockLog = patients[patientId].shocks ? [...patients[patientId].shocks] : [];
+  rhythmLog = patients[patientId].rhythms ? [...patients[patientId].rhythms] : [];
+  medicationLog = patients[patientId].medications ? [...patients[patientId].medications] : [];
+  interventionLog = patients[patientId].interventions ? [...patients[patientId].interventions] : [];
+  epinephrineLog = patients[patientId].epinephrine ? [...patients[patientId].epinephrine] : [];
   
   // Update UI
   renderVitalsLog();
   renderGcsLog();
   renderNotesLog();
+  renderCPRLog();
+  renderPulseCheckLog();
+  renderShockLog();
+  renderRhythmLog();
+  renderMedicationLog();
+  renderInterventionLog();
+  renderEpinephrineLog();
   renderPatientList();
   updatePatientInfoFields();
   renderVitalsChart();
@@ -1312,6 +1566,7 @@ function updateAllTabPatientDisplays() {
   document.getElementById('patient-info-current').textContent = patientName;
   document.getElementById('vitals-current').textContent = patientName;
   document.getElementById('gcs-current').textContent = patientName;
+  document.getElementById('cpr-current').textContent = patientName;
   document.getElementById('notes-current').textContent = patientName;
 }
 
@@ -2095,6 +2350,10 @@ function renderVitalsLog() {
       const rrClass = getVitalClass(item.rrate, 'rrate');
       lines.push(`Resp Rate: <span class="${rrClass}">${item.rrate}</span>/min`);
     }
+    if (item.hgt) {
+      const hgtClass = getVitalClass(item.hgt, 'hgt');
+      lines.push(`Glucose: <span class="${hgtClass}">${item.hgt}</span> mmol/L`);
+    }
     if (item.temp) {
       const tempClass = getVitalClass(item.temp, 'temp');
       lines.push(`Temp: <span class="${tempClass}">${item.temp}</span> °C`);
@@ -2364,6 +2623,7 @@ function generateResults() {
       if (latest.pulse) report += `- Pulse: ${latest.pulse} bpm\n`;
       if (latest.spo2) report += `- SPO2: ${latest.spo2}%\n`;
       if (latest.rrate) report += `- RR: ${latest.rrate}/min\n`;
+      if (latest.hgt) report += `- Glucose: ${latest.hgt} mmol/L\n`;
       if (latest.temp) report += `- Temp: ${latest.temp}°C\n`;
       if (latest.ecg) report += `- ECG: ${latest.ecg}\n`;
       if (latest.skin) report += `- Skin: ${latest.skin}\n`;
@@ -2373,6 +2633,36 @@ function generateResults() {
     // Add GCS
     if (gcsLog.length > 0) {
       report += `GCS: ${gcsLog[0].total}/15 (E${gcsLog[0].eye} V${gcsLog[0].verbal} M${gcsLog[0].motor})\n`;
+    }
+    
+    // Add CPR data
+    if (cprLog.length > 0 || shockLog.length > 0 || rhythmLog.length > 0 || medicationLog.length > 0 || interventionLog.length > 0 || epinephrineLog.length > 0) {
+      report += `\nCPR DATA:\n`;
+      if (shockLog.length > 0) {
+        shockLog.forEach(s => {
+          report += `- Shock: ${s.joules}J${s.doubleSequential ? ' (Double Sequential)' : ''} at ${s.time}\n`;
+        });
+      }
+      if (rhythmLog.length > 0) {
+        rhythmLog.forEach(r => {
+          report += `- Rhythm: ${r.rhythm} at ${r.time}\n`;
+        });
+      }
+      if (medicationLog.length > 0) {
+        medicationLog.forEach(m => {
+          report += `- Medication: ${m.medication} at ${m.time}\n`;
+        });
+      }
+      if (interventionLog.length > 0) {
+        interventionLog.forEach(i => {
+          report += `- Intervention: ${i.intervention} at ${i.time}\n`;
+        });
+      }
+      if (epinephrineLog.length > 0) {
+        epinephrineLog.forEach(e => {
+          report += `- Epinephrine: ${e.schedule} at ${e.time}\n`;
+        });
+      }
     }
     
     // Add alerts
@@ -2429,6 +2719,7 @@ function generateResults() {
           report += `SPO2           : ${v.spo2}%${ showTS ? ' ' + v.time : '' }\n`;
         }
         if (v.rrate) report += `Resp Rate      : ${v.rrate}/min${ showTS ? ' ' + v.time : '' }\n`;
+        if (v.hgt) report += `Glucose        : ${v.hgt} mmol/L${ showTS ? ' ' + v.time : '' }\n`;
         if (v.temp) report += `Temperature    : ${v.temp} °C${ showTS ? ' ' + v.time : '' }\n`;
         if (v.capRefill) report += `Cap Refill     : ${v.capRefill} s${ showTS ? ' ' + v.time : '' }\n`;
         if (v.pupilLeft || v.pupilRight) {
@@ -2455,6 +2746,51 @@ function generateResults() {
       gcsLog.forEach(g=>{
         report += `Total GCS Score: ${g.total} / 15 (E${g.eye} V${g.verbal} M${g.motor})${ showTS ? ' ' + g.time : '' }\n\n`;
       });
+    }
+
+    // Add CPR data
+    if (cprLog.length > 0 || shockLog.length > 0 || rhythmLog.length > 0 || medicationLog.length > 0 || interventionLog.length > 0 || epinephrineLog.length > 0) {
+      report += `--- CPR DATA ---\n\n`;
+      
+      if (shockLog.length > 0) {
+        report += `Shocks:\n`;
+        shockLog.forEach(s => {
+          report += `- ${s.joules}J${s.doubleSequential ? ' (Double Sequential)' : ''}${showTS ? ' ' + s.time : ''}\n`;
+        });
+        report += '\n';
+      }
+      
+      if (rhythmLog.length > 0) {
+        report += `Rhythms:\n`;
+        rhythmLog.forEach(r => {
+          report += `- ${r.rhythm}${showTS ? ' ' + r.time : ''}\n`;
+        });
+        report += '\n';
+      }
+      
+      if (medicationLog.length > 0) {
+        report += `Medications:\n`;
+        medicationLog.forEach(m => {
+          report += `- ${m.medication}${showTS ? ' ' + m.time : ''}\n`;
+        });
+        report += '\n';
+      }
+      
+      if (interventionLog.length > 0) {
+        report += `Interventions:\n`;
+        interventionLog.forEach(i => {
+          report += `- ${i.intervention}${showTS ? ' ' + i.time : ''}\n`;
+        });
+        report += '\n';
+      }
+      
+      if (epinephrineLog.length > 0) {
+        report += `Epinephrine:\n`;
+        epinephrineLog.forEach(e => {
+          report += `- ${e.schedule}${showTS ? ' ' + e.time : ''}\n`;
+        });
+        report += '\n';
+      }
     }
 
     // Only include signs/symptoms if there's content
@@ -2538,6 +2874,12 @@ function openTab(evt, tabName) {
   for (let b of btns) b.className = b.className.replace(' active','');
   document.getElementById(tabName).style.display = 'block';
   evt.currentTarget.className += ' active';
+  
+  // Special handling for CPR sub-tabs
+  if (tabName === 'cpr') {
+    const activeSubTab = document.querySelector('#cpr .tab-content.active');
+    if (activeSubTab) activeSubTab.style.display = 'block';
+  }
 }
 
 // update gcs total live
@@ -2615,6 +2957,535 @@ document.getElementById('record-note').addEventListener('click', function() {
   }
 });
 
+/* -------------------------
+   CPR Functions
+   ------------------------- */
+
+function openCPRSubTab(evt, tabName) {
+  const tabContents = document.querySelectorAll('#cpr .tab-content');
+  tabContents.forEach(content => content.style.display = 'none');
+  
+  const tabButtons = document.querySelectorAll('#cpr .tab-button');
+  tabButtons.forEach(button => button.classList.remove('active'));
+  
+  document.getElementById(tabName).style.display = 'block';
+  evt.currentTarget.classList.add('active');
+}
+
+function activateCPRSubTab(tabName) {
+  const tabContents = document.querySelectorAll('#cpr .tab-content');
+  tabContents.forEach(content => content.style.display = 'none');
+  const tabButtons = document.querySelectorAll('#cpr .tab-button');
+  tabButtons.forEach(button => button.classList.remove('active'));
+  const content = document.getElementById(tabName);
+  if (content) content.style.display = 'block';
+  // Find matching button (onclick contains the tabName)
+  for (let btn of tabButtons) {
+    try {
+      if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf(`'${tabName}'`) !== -1) {
+        btn.classList.add('active');
+        break;
+      }
+    } catch (e) {}
+  }
+}
+
+function startCPR() {
+  if (!cprTimerInterval) {
+    cprStartTime = Date.now() - cprElapsedTime;
+    cprTimerInterval = setInterval(updateCPRStopwatch, 1000);
+    const startBtn = document.getElementById('start-cpr');
+    if (startBtn) startBtn.disabled = true;
+    const pauseBtn = document.getElementById('pause-cpr');
+    if (pauseBtn) pauseBtn.disabled = false;
+    
+    // Start pulse check timer (2 minutes)
+    startPulseCheckTimer();
+    
+    logCPRActivity('CPR Started');
+  }
+}
+
+function pauseCPR() {
+  if (cprTimerInterval) {
+    clearInterval(cprTimerInterval);
+    cprTimerInterval = null;
+    cprElapsedTime = Date.now() - cprStartTime;
+    const startBtn = document.getElementById('start-cpr');
+    if (startBtn) startBtn.disabled = false;
+    const pauseBtn = document.getElementById('pause-cpr');
+    if (pauseBtn) pauseBtn.disabled = true;
+    
+    logCPRActivity('CPR Paused');
+  }
+}
+
+function resetCPR() {
+  clearInterval(cprTimerInterval);
+  clearInterval(pulseCheckInterval);
+  // Stop metronome if running
+  if (metronomeInterval) {
+    clearInterval(metronomeInterval);
+    metronomeInterval = null;
+  }
+  metronomePlaying = false;
+  const metroBtn = document.getElementById('start-cpr-metronome');
+  if (metroBtn) { metroBtn.textContent = 'Start CPR'; metroBtn.classList.remove('btn-primary'); metroBtn.classList.add('btn-secondary'); }
+  cprTimerInterval = null;
+  cprElapsedTime = 0;
+  cprStartTime = null;
+  singlePersonCycle = 0;
+  pulseCheckCount = 0;
+  document.getElementById('cpr-stopwatch').textContent = '00:00:00';
+  document.getElementById('pulse-check-timer').textContent = 'Next pulse check: 02:00';
+  const startBtn = document.getElementById('start-cpr');
+  if (startBtn) startBtn.disabled = false;
+  const pauseBtn = document.getElementById('pause-cpr');
+  if (pauseBtn) pauseBtn.disabled = true;
+  
+  logCPRActivity('CPR Reset');
+}
+
+function updateCPRStopwatch() {
+  const elapsed = Date.now() - cprStartTime;
+  const hours = Math.floor(elapsed / 3600000);
+  const minutes = Math.floor((elapsed % 3600000) / 60000);
+  const seconds = Math.floor((elapsed % 60000) / 1000);
+  
+  document.getElementById('cpr-stopwatch').textContent = 
+    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function startPulseCheckTimer() {
+  if (cprMode === 'single') return; // For single person, pulse check is triggered by cycle
+  
+  let timeLeft = 120; // 2 minutes
+  pulseCheckInterval = setInterval(() => {
+    timeLeft--;
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    document.getElementById('pulse-check-timer').textContent = 
+      `Next pulse check: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (timeLeft <= 0) {
+      clearInterval(pulseCheckInterval);
+      triggerPulseCheck();
+    }
+  }, 1000);
+}
+
+function triggerPulseCheck() {
+  pulseCheckCount++;
+  
+  // Play 3 quick beeps
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => playBeep(1000), i * 200);
+  }
+  
+  // Pause metronome
+  if (metronomeInterval) {
+    clearInterval(metronomeInterval);
+    metronomePlaying = false;
+    const button = document.getElementById('start-cpr-metronome');
+    button.textContent = 'Resume CPR';
+    button.classList.remove('btn-primary');
+    button.classList.add('btn-secondary');
+  }
+  
+  // Switch to pulse check tab
+  activateCPRSubTab('pulse-check');
+  
+  // Log the pulse check start
+  const totalTime = document.getElementById('cpr-stopwatch').textContent;
+  logCPRActivity(`Pulse Check #${pulseCheckCount} started (Total CPR time: ${totalTime})`);
+}
+
+function recordPulseCheck(result) {
+  const totalTime = document.getElementById('cpr-stopwatch').textContent;
+  const item = {
+    time: nowTimestamp(),
+    iso: formatDateTimeISO(),
+    result: result,
+    checkNumber: pulseCheckCount,
+    totalCPRTime: totalTime
+  };
+  
+  pulseCheckLog.unshift(item);
+  if (pulseCheckLog.length > 50) pulseCheckLog.length = 50;
+  
+  renderPulseCheckLog();
+  logCPRActivity(`Pulse Check #${pulseCheckCount}: ${result.toUpperCase()} (Total CPR time: ${totalTime})`);
+  
+  if (result === 'no-pulse') {
+    // Restart metronome and switch to rhythm tab
+    setTimeout(() => {
+      activateCPRSubTab('rhythm');
+      // Restart metronome
+      const bpm = parseInt(document.getElementById('metronome-bpm').value);
+      const button = document.getElementById('start-cpr-metronome');
+      if (cprMode === 'single') {
+        startSinglePersonCPR(bpm);
+      } else {
+        const interval = 60000 / bpm;
+        metronomeInterval = setInterval(() => {
+          playBeep(800);
+        }, interval);
+      }
+      metronomePlaying = true;
+      button.textContent = 'Stop CPR';
+      button.classList.remove('btn-secondary');
+      button.classList.add('btn-primary');
+      
+      // Restart pulse check timer
+      startPulseCheckTimer();
+    }, 500);
+  } else {
+    // Pulse present - perhaps terminate CPR or just restart timer
+    // For now, restart timer
+    startPulseCheckTimer();
+  }
+  
+  saveToLocalStorage();
+}
+
+function toggleMetronome(startCPRWhenStarting = false) {
+  const bpm = parseInt(document.getElementById('metronome-bpm').value);
+  const button = document.getElementById('start-cpr-metronome');
+  cprMode = document.querySelector('input[name="cpr-mode"]:checked').value;
+  
+  if (metronomePlaying) {
+    clearInterval(metronomeInterval);
+    metronomePlaying = false;
+    button.textContent = 'Start CPR';
+    button.classList.remove('btn-primary');
+    button.classList.add('btn-secondary');
+    // Reset single person cycle
+    singlePersonCycle = 0;
+  } else {
+    if (cprMode === 'single') {
+      startSinglePersonCPR(bpm);
+    } else {
+      // Standard CPR
+      const interval = 60000 / bpm; // milliseconds per beat
+      metronomeInterval = setInterval(() => {
+        playBeep(800); // Standard beep
+      }, interval);
+    }
+    
+    metronomePlaying = true;
+    button.textContent = 'Stop CPR';
+    button.classList.remove('btn-secondary');
+    button.classList.add('btn-primary');
+    // Optionally start CPR stopwatch when metronome starts
+    if (startCPRWhenStarting) startCPR();
+  }
+}
+
+function playBeep(frequency = 800) {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+  gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.1);
+}
+
+function startSinglePersonCPR(bpm) {
+  singlePersonCycle = 0;
+  const interval = 60000 / bpm; // milliseconds per beat
+  let compressionCount = 0;
+  
+  metronomeInterval = setInterval(() => {
+    if (compressionCount < 30) {
+      playBeep(800); // Standard compression beep
+      compressionCount++;
+    } else {
+      // After 30 compressions, play different sound
+      playBeep(1200); // Higher pitch for end of cycle
+      clearInterval(metronomeInterval);
+      setTimeout(() => {
+        // 6 second pause, then start next cycle
+        singlePersonCycle++;
+        if (singlePersonCycle < 4) {
+          startSinglePersonCPR(bpm); // Restart for next cycle
+        } else {
+          // After 4 cycles, trigger pulse check
+          triggerPulseCheck();
+          metronomePlaying = false;
+          const button = document.getElementById('start-cpr-metronome');
+          button.textContent = 'Start CPR';
+          button.classList.remove('btn-primary');
+          button.classList.add('btn-secondary');
+        }
+      }, 6000);
+    }
+  }, interval);
+}
+
+function logShock() {
+  const joules = document.getElementById('shock-joules').value;
+  const doubleSeq = document.getElementById('double-seq-defib').checked;
+  
+  const item = {
+    time: nowTimestamp(),
+    iso: formatDateTimeISO(),
+    joules: joules,
+    doubleSequential: doubleSeq
+  };
+  
+  shockLog.unshift(item);
+  if (shockLog.length > 50) shockLog.length = 50;
+  
+  renderShockLog();
+  logCPRActivity(`Shock: ${joules}J${doubleSeq ? ' (Double Sequential)' : ''}`);
+  saveToLocalStorage();
+}
+
+function logRhythm(rhythm) {
+  const item = {
+    time: nowTimestamp(),
+    iso: formatDateTimeISO(),
+    rhythm: rhythm
+  };
+  
+  rhythmLog.unshift(item);
+  if (rhythmLog.length > 50) rhythmLog.length = 50;
+  
+  renderRhythmLog();
+  logCPRActivity(`Rhythm: ${rhythm}`);
+  saveToLocalStorage();
+}
+
+function logSelectedRhythm() {
+  const select = document.getElementById('rhythm-select');
+  const rhythm = select.value;
+  if (rhythm) {
+    logRhythm(rhythm);
+    select.value = '';
+  }
+}
+
+function logMedication(medication) {
+  const item = {
+    time: nowTimestamp(),
+    iso: formatDateTimeISO(),
+    medication: medication
+  };
+  
+  medicationLog.unshift(item);
+  if (medicationLog.length > 50) medicationLog.length = 50;
+  
+  renderMedicationLog();
+  logCPRActivity(`Medication: ${medication}`);
+  saveToLocalStorage();
+}
+
+function logSelectedMedication() {
+  const select = document.getElementById('medication-select');
+  const medication = select.value;
+  if (medication) {
+    logMedication(medication);
+    select.value = '';
+  }
+}
+
+function logOtherMedication() {
+  const medication = document.getElementById('other-medication').value.trim();
+  if (medication) {
+    logMedication(medication);
+    document.getElementById('other-medication').value = '';
+  }
+}
+
+function logIntervention(intervention) {
+  const item = {
+    time: nowTimestamp(),
+    iso: formatDateTimeISO(),
+    intervention: intervention
+  };
+  
+  interventionLog.unshift(item);
+  if (interventionLog.length > 50) interventionLog.length = 50;
+  
+  renderInterventionLog();
+  logCPRActivity(`Intervention: ${intervention}`);
+  saveToLocalStorage();
+}
+
+function logSelectedIntervention() {
+  const select = document.getElementById('intervention-select');
+  const intervention = select.value;
+  if (intervention) {
+    logIntervention(intervention);
+    select.value = '';
+  }
+}
+
+function logOtherIntervention() {
+  const intervention = document.getElementById('other-intervention').value.trim();
+  if (intervention) {
+    logIntervention(intervention);
+    document.getElementById('other-intervention').value = '';
+  }
+}
+
+function logEpinephrine(schedule) {
+  const item = {
+    time: nowTimestamp(),
+    iso: formatDateTimeISO(),
+    schedule: schedule
+  };
+  
+  epinephrineLog.unshift(item);
+  if (epinephrineLog.length > 50) epinephrineLog.length = 50;
+  
+  renderEpinephrineLog();
+  logCPRActivity(`Epinephrine: ${schedule}`);
+  saveToLocalStorage();
+}
+
+function logSelectedEpinephrine() {
+  const radios = document.getElementsByName('epinephrine-schedule');
+  let schedule = '';
+  for (const radio of radios) {
+    if (radio.checked) {
+      schedule = radio.value;
+      break;
+    }
+  }
+  if (schedule) {
+    logEpinephrine(schedule);
+    // Uncheck all
+    radios.forEach(radio => radio.checked = false);
+  }
+}
+
+function logCPRActivity(activity) {
+  const item = {
+    time: nowTimestamp(),
+    iso: formatDateTimeISO(),
+    activity: activity
+  };
+  
+  cprLog.unshift(item);
+  if (cprLog.length > 200) cprLog.length = 200;
+  
+  renderCPRLog();
+  saveToLocalStorage();
+}
+
+function renderPulseCheckLog() {
+  const el = document.getElementById('pulse-check-log');
+  el.innerHTML = '';
+  if (pulseCheckLog.length === 0) {
+    el.innerHTML = '<div class="log-item meta">No pulse checks recorded</div>';
+    return;
+  }
+  pulseCheckLog.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — Check #${item.checkNumber}: ${item.result.toUpperCase()} (Total: ${item.totalCPRTime})</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderShockLog() {
+  const el = document.getElementById('shock-log');
+  el.innerHTML = '';
+  if (shockLog.length === 0) {
+    el.innerHTML = '<div class="log-item meta">No shocks recorded</div>';
+    return;
+  }
+  shockLog.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — ${item.joules}J${item.doubleSequential ? ' (Double Sequential)' : ''}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderRhythmLog() {
+  const el = document.getElementById('rhythm-log');
+  el.innerHTML = '';
+  if (rhythmLog.length === 0) {
+    el.innerHTML = '<div class="log-item meta">No rhythms recorded</div>';
+    return;
+  }
+  rhythmLog.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — ${item.rhythm}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderMedicationLog() {
+  const el = document.getElementById('medication-log');
+  el.innerHTML = '';
+  if (medicationLog.length === 0) {
+    el.innerHTML = '<div class="log-item meta">No medications recorded</div>';
+    return;
+  }
+  medicationLog.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — ${item.medication}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderInterventionLog() {
+  const el = document.getElementById('intervention-log');
+  el.innerHTML = '';
+  if (interventionLog.length === 0) {
+    el.innerHTML = '<div class="log-item meta">No interventions recorded</div>';
+    return;
+  }
+  interventionLog.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — ${item.intervention}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderEpinephrineLog() {
+  const el = document.getElementById('epinephrine-log');
+  el.innerHTML = '';
+  if (epinephrineLog.length === 0) {
+    el.innerHTML = '<div class="log-item meta">No epinephrine recorded</div>';
+    return;
+  }
+  epinephrineLog.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — ${item.schedule}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderCPRLog() {
+  const el = document.getElementById('cpr-log');
+  el.innerHTML = '';
+  if (cprLog.length === 0) {
+    el.innerHTML = '<div class="log-item meta">No CPR activity recorded</div>';
+    return;
+  }
+  cprLog.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div><strong>${item.time}</strong> — ${item.activity}</div>`;
+    el.appendChild(div);
+  });
+}
+
 /* initial render */
 document.addEventListener('DOMContentLoaded', function() {
   loadFromLocalStorage();
@@ -2629,6 +3500,13 @@ document.addEventListener('DOMContentLoaded', function() {
   renderVitalsLog();
   renderGcsLog();
   renderNotesLog();
+  renderCPRLog();
+  renderPulseCheckLog();
+  renderShockLog();
+  renderRhythmLog();
+  renderMedicationLog();
+  renderInterventionLog();
+  renderEpinephrineLog();
   renderAlertsToTabs();
   renderVitalsChart();
   renderPatientList();
